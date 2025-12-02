@@ -26,9 +26,8 @@ export const App: React.FC = () => {
   const [btcPrice, setBtcPrice] = useState<number>(0)
   const [isConnected, setIsConnected] = useState(false)
   
-  const baseURL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    ? window.location.origin.replace(':5173', ':8000')
-    : `http://${window.location.hostname}:8000`
+  // Use same origin for API calls (works when served from Pi)
+  const baseURL = ''
 
   useEffect(() => {
     if (token) {

@@ -1,13 +1,16 @@
 """
 Pluto Lander Backend - FastAPI Service
 Trading bot control center with Alpaca integration
+Serves both API and static dashboard
 """
 from fastapi import FastAPI, Depends, WebSocket, WebSocketDisconnect, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from typing import List, Optional
 from pydantic import BaseModel
+from pathlib import Path
 import asyncio
 
 from .auth import get_current_user, create_access_token, authenticate_user
@@ -18,6 +21,7 @@ from . import alpaca_client
 
 app = FastAPI(title="Pluto Lander Backend", version="3.0.0")
 
+# CORS for development
 origins = ["*"]
 app.add_middleware(
     CORSMiddleware,
@@ -29,6 +33,9 @@ app.add_middleware(
 
 telemetry_clients: List[WebSocket] = []
 
+# Path to built dashboard
+DASHBOARD_DIR = Path(__file__).parent.parent / "dashboard" / "dist"
+
 
 # ============== STARTUP ==============
 @app.on_event("startup")
@@ -36,6 +43,10 @@ async def startup():
     ensure_default_user()
     print("[Pluto] 🚀 Backend started. Default admin user ensured.")
     print("[Pluto] 📡 WebSocket telemetry ready at /ws/telemetry")
+    if DASHBOARD_DIR.exists():
+        print(f"[Pluto] 🖥️  Dashboard serving from {DASHBOARD_DIR}")
+    else:
+        print(f"[Pluto] ⚠️  Dashboard not built yet. Run 'npm run build' in dashboard/")
 
 
 # ============== AUTH ROUTES ==============
@@ -242,3 +253,31 @@ async def system_status(current_user=Depends(get_current_user)):
         "websocket_clients": len(telemetry_clients),
         "account_status": alpaca_account.get("status") if alpaca_account else None,
     }
+
+
+# ============== SERVE DASHBOARD ==============
+# Mount static files for dashboard assets (must be after API routes)
+if DASHBOARD_DIR.exists():
+    app.mount("/assets", StaticFiles(directory=DASHBOARD_DIR / "assets"), name="assets")
+
+
+# Catch-all route to serve the dashboard for any non-API route
+@app.get("/{full_path:path}")
+async def serve_dashboard(full_path: str):
+    """Serve the React dashboard for all non-API routes"""
+    # Don't serve dashboard for API routes
+    if full_path.startswith("api/") or full_path.startswith("ws/"):
+        raise HTTPException(status_code=404, detail="Not found")
+    
+    # Check if it's a static file
+    file_path = DASHBOARD_DIR / full_path
+    if file_path.exists() and file_path.is_file():
+        return FileResponse(file_path)
+    
+    # Serve index.html for all other routes (SPA routing)
+    index_path = DASHBOARD_DIR / "index.html"
+    if index_path.exists():
+        return FileResponse(index_path)
+    
+    # Dashboard not built
+    return {"message": "Dashboard not built. Run 'cd dashboard && npm install && npm run build'"}

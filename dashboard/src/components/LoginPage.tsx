@@ -21,7 +21,7 @@ export const LoginPage: React.FC<Props> = ({ onLoggedIn, baseURL }) => {
       form.append('username', username)
       form.append('password', password)
       form.append('grant_type', '')
-      const res = await axios.post('/api/auth/login', form, { baseURL })
+      const res = await axios.post(`${baseURL}/api/auth/login`, form)
       onLoggedIn(res.data.access_token)
     } catch {
       setError('Invalid credentials')
