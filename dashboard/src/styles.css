@@ -1,0 +1,272 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+  --pluto-bg: #0a0b10;
+  --pluto-panel: #12141c;
+  --pluto-card: #181a24;
+  --pluto-border: #252836;
+  --pluto-accent: #f5a623;
+  --pluto-accent-soft: #ffc966;
+  --pluto-green: #22c55e;
+  --pluto-red: #ef4444;
+  --pluto-blue: #3b82f6;
+  --pluto-purple: #a855f7;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Outfit', sans-serif;
+  background: var(--pluto-bg);
+  color: #e5e7eb;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  background-image: 
+    radial-gradient(ellipse at 20% 20%, rgba(245, 166, 35, 0.03) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 80%, rgba(59, 130, 246, 0.03) 0%, transparent 50%);
+}
+
+.font-mono {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--pluto-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--pluto-border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3a3d4d;
+}
+
+/* Toggle switch */
+.toggle-switch {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  background: #252836;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.toggle-switch.active {
+  background: var(--pluto-accent);
+}
+
+.toggle-switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background: white;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.toggle-switch.active::after {
+  left: 22px;
+}
+
+/* Circular gauge */
+.circular-gauge {
+  position: relative;
+  width: 180px;
+  height: 180px;
+}
+
+.circular-gauge svg {
+  transform: rotate(-90deg);
+}
+
+.circular-gauge .track {
+  stroke: #252836;
+  fill: none;
+  stroke-width: 8;
+}
+
+.circular-gauge .progress {
+  stroke: url(#gaugeGradient);
+  fill: none;
+  stroke-width: 8;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.5s ease;
+}
+
+/* Pulse animation */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.animate-pulse-slow {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* Glow effects */
+.glow-accent {
+  box-shadow: 0 0 20px rgba(245, 166, 35, 0.15);
+}
+
+.glow-green {
+  box-shadow: 0 0 20px rgba(34, 197, 94, 0.15);
+}
+
+/* Card hover effect */
+.card-hover {
+  transition: all 0.3s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+}
+
+/* Tab styles */
+.tab {
+  position: relative;
+  padding: 12px 24px;
+  color: #6b7280;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.tab:hover {
+  color: #9ca3af;
+}
+
+.tab.active {
+  color: var(--pluto-accent);
+}
+
+.tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--pluto-accent);
+}
+
+/* Sparkline */
+.sparkline-bar {
+  transition: height 0.3s ease;
+}
+
+/* Status dot */
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.status-dot.online {
+  background: var(--pluto-green);
+  box-shadow: 0 0 8px var(--pluto-green);
+}
+
+.status-dot.offline {
+  background: var(--pluto-red);
+  box-shadow: 0 0 8px var(--pluto-red);
+}
+
+.status-dot.standby {
+  background: var(--pluto-accent);
+  box-shadow: 0 0 8px var(--pluto-accent);
+}
+
+/* Price ticker animation */
+@keyframes ticker {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.ticker-scroll {
+  animation: ticker 30s linear infinite;
+}
+
+/* Button styles */
+.btn-primary {
+  background: var(--pluto-accent);
+  color: #000;
+  font-weight: 600;
+  padding: 10px 20px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+  background: var(--pluto-accent-soft);
+  transform: translateY(-1px);
+}
+
+.btn-danger {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  font-weight: 500;
+  padding: 10px 20px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.btn-danger:hover {
+  background: rgba(239, 68, 68, 0.3);
+}
+
+/* Input styles */
+.input-field {
+  background: rgba(0,0,0,0.4);
+  border: 1px solid var(--pluto-border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: #e5e7eb;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  width: 100%;
+}
+
+.input-field:focus {
+  outline: none;
+  border-color: var(--pluto-accent);
+  box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.1);
+}
+
+/* Select styles */
+.select-field {
+  background: rgba(0,0,0,0.4);
+  border: 1px solid var(--pluto-border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: #e5e7eb;
+  font-size: 14px;
+  cursor: pointer;
+  width: 100%;
+}
+
+.select-field:focus {
+  outline: none;
+  border-color: var(--pluto-accent);
+}
