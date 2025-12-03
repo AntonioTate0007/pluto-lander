@@ -56,9 +56,11 @@ export const LoginPage: React.FC<Props> = ({ onLoggedIn, baseURL }) => {
       <div className="relative z-10 w-full max-w-md">
         {/* Logo/Branding */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-pluto-accent/20 to-pluto-accent/5 border border-pluto-accent/30 mb-4">
-            <span className="text-4xl">🚀</span>
-          </div>
+          <img 
+            src="/branding/pluto_launcher_logo.png" 
+            alt="Pluto Lander" 
+            className="w-32 h-32 mx-auto mb-4 object-contain"
+          />
           <h1 className="text-3xl font-bold text-white mb-2">Pluto Lander</h1>
           <p className="text-gray-400">Trading Bot Control Center</p>
         </div>

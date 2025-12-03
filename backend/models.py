@@ -15,8 +15,7 @@ class User:
 class UserPublic(BaseModel):
     username: str
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}
 
 
 class SettingsBase(BaseModel):
@@ -29,14 +28,6 @@ class SettingsBase(BaseModel):
 
     display_theme: str = "dark-gold"
     display_layout: str = "braiins-style"
-    
-    # Pi display widget toggles
-    widget_btc_price: bool = True
-    widget_portfolio: bool = True
-    widget_positions: bool = True
-    widget_pnl: bool = True
-    widget_clock: bool = False
-    widget_alerts: bool = True
 
 
 class SettingsUpdate(SettingsBase):
@@ -48,18 +39,12 @@ class SettingsUpdate(SettingsBase):
     notify_sms_number: Optional[str] = None
     display_theme: Optional[str] = None
     display_layout: Optional[str] = None
-    widget_btc_price: Optional[bool] = None
-    widget_portfolio: Optional[bool] = None
-    widget_positions: Optional[bool] = None
-    widget_pnl: Optional[bool] = None
-    widget_clock: Optional[bool] = None
-    widget_alerts: Optional[bool] = None
 
 
 class SettingsPublic(SettingsBase):
     """Public settings with masked secrets"""
-    alpaca_api_key: Optional[str] = None  # Store actual key
-    alpaca_api_secret: Optional[str] = None  # Store actual secret
+    alpaca_api_key: Optional[str] = None
+    alpaca_api_secret: Optional[str] = None
     alpaca_api_key_masked: Optional[str] = None
     alpaca_api_secret_masked: Optional[str] = None
 
@@ -67,7 +52,7 @@ class SettingsPublic(SettingsBase):
 class TradeSignal(BaseModel):
     """Incoming trade signal from strategy"""
     symbol: str
-    side: str  # 'buy' or 'sell'
+    side: str
     confidence: float = 0.5
     reason: Optional[str] = None
     price: Optional[float] = None
@@ -83,13 +68,3 @@ class TelemetryMessage(BaseModel):
     reason: Optional[str] = None
     price: Optional[float] = None
     extra: Dict[str, Any] = {}
-
-
-class OrderRequest(BaseModel):
-    """Order request to Alpaca"""
-    symbol: str
-    qty: float
-    side: str
-    type: str = "market"
-    time_in_force: str = "day"
-    limit_price: Optional[float] = None

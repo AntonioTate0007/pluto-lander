@@ -33,8 +33,9 @@ app.add_middleware(
 
 telemetry_clients: List[WebSocket] = []
 
-# Path to built dashboard
+# Path to built dashboard and branding
 DASHBOARD_DIR = Path(__file__).parent.parent / "dashboard" / "dist"
+BRANDING_DIR = Path(__file__).parent.parent / "branding"
 
 
 # ============== STARTUP ==============
@@ -259,6 +260,10 @@ async def system_status(current_user=Depends(get_current_user)):
 # Mount static files for dashboard assets (must be after API routes)
 if DASHBOARD_DIR.exists():
     app.mount("/assets", StaticFiles(directory=DASHBOARD_DIR / "assets"), name="assets")
+
+# Serve branding folder
+if BRANDING_DIR.exists():
+    app.mount("/branding", StaticFiles(directory=BRANDING_DIR), name="branding")
 
 
 # Catch-all route to serve the dashboard for any non-API route
