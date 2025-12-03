@@ -1,0 +1,42 @@
+/**
+ * ESP32-2432S028 Display Test
+ * ST7789V Driver Test Program
+ * 
+ * Rename this to main.cpp to run the simple test
+ */
+
+#include <TFT_eSPI.h>
+#include <SPI.h>
+
+TFT_eSPI tft = TFT_eSPI();
+
+void setup() {
+    Serial.begin(115200);
+    delay(300);
+
+    // Turn on backlight
+    pinMode(27, OUTPUT);
+    digitalWrite(27, HIGH);
+
+    Serial.println("Init ST7789...");
+
+    tft.init();
+    tft.setRotation(1);
+
+    // Simple color test
+    tft.fillScreen(TFT_RED);   delay(500);
+    tft.fillScreen(TFT_GREEN); delay(500);
+    tft.fillScreen(TFT_BLUE);  delay(500);
+    tft.fillScreen(TFT_BLACK); delay(200);
+
+    tft.setTextColor(TFT_WHITE, TFT_BLACK);
+    tft.drawString("ESP32-2432S028", 20, 20, 4);
+    tft.drawString("ST7789V SUCCESS!", 20, 60, 4);
+    
+    Serial.println("Display test complete!");
+}
+
+void loop() {
+    // Nothing to do
+}
+
