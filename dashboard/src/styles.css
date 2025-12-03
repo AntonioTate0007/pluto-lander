@@ -2,80 +2,185 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Segoe+UI:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
 
 :root {
-  --pluto-bg: #0a0b10;
-  --pluto-panel: #12141c;
-  --pluto-card: #181a24;
-  --pluto-border: #252836;
-  --pluto-accent: #f5a623;
-  --pluto-accent-soft: #ffc966;
-  --pluto-green: #22c55e;
-  --pluto-red: #ef4444;
-  --pluto-blue: #3b82f6;
-  --pluto-purple: #a855f7;
+  --bg-primary: #0f1419;
+  --bg-secondary: #1a1f3a;
+  --bg-card: #1a1a1a;
+  --accent: #ffa726;
+  --accent-glow: rgba(255, 167, 38, 0.4);
+  --text-primary: #e0e0e0;
+  --text-secondary: #888;
+  --border-color: #2a3f5f;
+  --success: #4caf50;
+  --error: #f44336;
+  --info: #4fc3f7;
 }
 
 * {
   box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
 body {
-  font-family: 'Outfit', sans-serif;
-  background: var(--pluto-bg);
-  color: #e5e7eb;
-  margin: 0;
-  padding: 0;
+  font-family: 'Segoe UI', -apple-system, 'Roboto', sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
   min-height: 100vh;
-  background-image: 
-    radial-gradient(ellipse at 20% 20%, rgba(245, 166, 35, 0.03) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 80%, rgba(59, 130, 246, 0.03) 0%, transparent 50%);
+  overflow-x: hidden;
 }
 
-.font-mono {
-  font-family: 'JetBrains Mono', monospace;
+/* ============== PAGE LOAD ANIMATIONS ============== */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
-::-webkit-scrollbar-track {
-  background: var(--pluto-bg);
+@keyframes gradientShift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
 }
 
-::-webkit-scrollbar-thumb {
-  background: var(--pluto-border);
-  border-radius: 3px;
+.page-enter {
+  animation: fadeInUp 0.8s ease-out forwards;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #3a3d4d;
+.header-enter {
+  animation: slideInLeft 0.6s ease-out forwards;
 }
 
-/* Toggle switch */
+/* ============== HEADER SHIMMER ============== */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.header-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.header-shimmer::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 167, 38, 0.1),
+    transparent
+  );
+  background-size: 200% 100%;
+  animation: shimmer 3s linear infinite;
+  pointer-events: none;
+}
+
+/* ============== LOGO ANIMATIONS ============== */
+@keyframes logoFloat {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+.logo-float {
+  animation: logoFloat 3s ease-in-out infinite;
+}
+
+.logo-hover {
+  transition: all 0.3s ease;
+}
+
+.logo-hover:hover {
+  transform: scale(1.1) rotate(5deg);
+  filter: drop-shadow(0 0 20px var(--accent-glow));
+}
+
+/* ============== BACKGROUND GRADIENTS ============== */
+@keyframes bgGradient {
+  0%, 100% {
+    background-position: 0% 0%;
+  }
+  25% {
+    background-position: 100% 0%;
+  }
+  50% {
+    background-position: 100% 100%;
+  }
+  75% {
+    background-position: 0% 100%;
+  }
+}
+
+.animated-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(ellipse at 20% 20%, rgba(26, 31, 58, 0.8) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 80%, rgba(255, 167, 38, 0.05) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(79, 195, 247, 0.03) 0%, transparent 50%),
+    var(--bg-primary);
+  background-size: 200% 200%;
+  animation: bgGradient 15s ease infinite;
+  z-index: -1;
+}
+
+/* ============== TOGGLE SWITCHES ============== */
 .toggle-switch {
   position: relative;
-  width: 44px;
-  height: 24px;
-  background: #252836;
-  border-radius: 12px;
+  width: 48px;
+  height: 26px;
+  background: #333;
+  border-radius: 13px;
   cursor: pointer;
   transition: all 0.3s ease;
 }
 
 .toggle-switch.active {
-  background: var(--pluto-accent);
+  background: var(--accent);
+  box-shadow: 0 0 15px var(--accent-glow);
 }
 
 .toggle-switch::after {
   content: '';
   position: absolute;
-  top: 2px;
-  left: 2px;
+  top: 3px;
+  left: 3px;
   width: 20px;
   height: 20px;
   background: white;
@@ -85,78 +190,185 @@ body {
 }
 
 .toggle-switch.active::after {
-  left: 22px;
+  left: 25px;
 }
 
-/* Circular gauge */
-.circular-gauge {
-  position: relative;
-  width: 180px;
-  height: 180px;
+/* ============== BUTTONS ============== */
+.btn-primary {
+  background: var(--text-primary);
+  color: var(--bg-primary);
+  font-weight: 600;
+  padding: 12px 24px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-.circular-gauge svg {
-  transform: rotate(-90deg);
+.btn-primary:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 15px rgba(224, 224, 224, 0.3);
 }
 
-.circular-gauge .track {
-  stroke: #252836;
-  fill: none;
-  stroke-width: 8;
+.btn-secondary {
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  padding: 12px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-.circular-gauge .progress {
-  stroke: url(#gaugeGradient);
-  fill: none;
-  stroke-width: 8;
-  stroke-linecap: round;
-  transition: stroke-dashoffset 0.5s ease;
+.btn-secondary:hover {
+  background: rgba(255,255,255,0.05);
+  border-color: var(--accent);
 }
 
-/* Pulse animation */
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+/* ============== STATUS INDICATORS ============== */
+@keyframes statusPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 var(--success);
+  }
+  50% {
+    box-shadow: 0 0 0 8px transparent;
+  }
 }
 
-.animate-pulse-slow {
-  animation: pulse 2s ease-in-out infinite;
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--success);
 }
 
-/* Glow effects */
-.glow-accent {
-  box-shadow: 0 0 20px rgba(245, 166, 35, 0.15);
+.status-dot.active {
+  animation: statusPulse 2s ease-in-out infinite;
+  box-shadow: 0 0 10px var(--success);
 }
 
-.glow-green {
-  box-shadow: 0 0 20px rgba(34, 197, 94, 0.15);
+.status-dot.inactive {
+  background: var(--text-secondary);
+  animation: none;
 }
 
-/* Card hover effect */
-.card-hover {
+/* ============== LIVE BADGE ============== */
+@keyframes badgePulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+.badge-live {
+  background: var(--success);
+  color: white;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  animation: badgePulse 1.5s ease-in-out infinite;
+}
+
+.badge-inactive {
+  background: var(--text-secondary);
+  animation: none;
+}
+
+/* ============== CARDS ============== */
+.card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1.5rem;
   transition: all 0.3s ease;
 }
 
-.card-hover:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+.card:hover {
+  border-color: rgba(255, 167, 38, 0.3);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
 }
 
-/* Tab styles */
+/* ============== GAUGE ANIMATION ============== */
+@keyframes gaugeProgress {
+  from {
+    stroke-dashoffset: 440;
+  }
+}
+
+.gauge-arc {
+  transition: stroke-dashoffset 1s ease-out;
+}
+
+/* ============== GLOW EFFECTS ============== */
+.glow-accent {
+  text-shadow: 0 0 20px var(--accent-glow);
+}
+
+.glow-box-accent {
+  box-shadow: 0 0 20px var(--accent-glow);
+}
+
+/* ============== INPUT FIELDS ============== */
+.input-field {
+  background: rgba(0,0,0,0.4);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 12px 16px;
+  color: var(--text-primary);
+  font-size: 14px;
+  width: 100%;
+  transition: all 0.3s ease;
+}
+
+.input-field:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(255, 167, 38, 0.1);
+}
+
+/* ============== WIDGET PREVIEW ============== */
+.widget-preview {
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1rem;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.widget-preview.enabled {
+  border-color: var(--success);
+  background: rgba(76, 175, 80, 0.1);
+  box-shadow: 0 0 15px rgba(76, 175, 80, 0.2);
+}
+
+.widget-preview.disabled {
+  opacity: 0.5;
+  filter: grayscale(50%);
+}
+
+/* ============== TABS ============== */
 .tab {
   position: relative;
-  padding: 12px 24px;
-  color: #6b7280;
+  padding: 14px 24px;
+  color: var(--text-secondary);
   font-weight: 500;
+  cursor: pointer;
   transition: all 0.3s ease;
+  border: none;
+  background: transparent;
 }
 
 .tab:hover {
-  color: #9ca3af;
+  color: var(--text-primary);
 }
 
 .tab.active {
-  color: var(--pluto-accent);
+  color: var(--accent);
 }
 
 .tab.active::after {
@@ -166,107 +378,59 @@ body {
   left: 0;
   right: 0;
   height: 2px;
-  background: var(--pluto-accent);
+  background: var(--accent);
+  box-shadow: 0 0 10px var(--accent-glow);
 }
 
-/* Sparkline */
-.sparkline-bar {
-  transition: height 0.3s ease;
-}
-
-/* Status dot */
-.status-dot {
+/* ============== SCROLLBAR ============== */
+::-webkit-scrollbar {
   width: 8px;
   height: 8px;
-  border-radius: 50%;
-  animation: pulse 2s ease-in-out infinite;
 }
 
-.status-dot.online {
-  background: var(--pluto-green);
-  box-shadow: 0 0 8px var(--pluto-green);
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
 }
 
-.status-dot.offline {
-  background: var(--pluto-red);
-  box-shadow: 0 0 8px var(--pluto-red);
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
 }
 
-.status-dot.standby {
-  background: var(--pluto-accent);
-  box-shadow: 0 0 8px var(--pluto-accent);
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
 }
 
-/* Price ticker animation */
-@keyframes ticker {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
+/* ============== CHART STYLES ============== */
+.chart-line {
+  stroke-width: 2px;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
-.ticker-scroll {
-  animation: ticker 30s linear infinite;
+.chart-area {
+  opacity: 0.1;
 }
 
-/* Button styles */
-.btn-primary {
-  background: var(--pluto-accent);
-  color: #000;
-  font-weight: 600;
-  padding: 10px 20px;
-  border-radius: 8px;
+/* ============== SETTINGS GEAR ============== */
+.settings-gear {
+  transition: transform 0.3s ease;
+}
+
+.settings-gear:hover {
+  transform: rotate(90deg);
+}
+
+/* ============== NUMBER ANIMATIONS ============== */
+.number-update {
   transition: all 0.3s ease;
 }
 
-.btn-primary:hover {
-  background: var(--pluto-accent-soft);
-  transform: translateY(-1px);
+.number-up {
+  color: var(--success);
 }
 
-.btn-danger {
-  background: rgba(239, 68, 68, 0.2);
-  color: #ef4444;
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  font-weight: 500;
-  padding: 10px 20px;
-  border-radius: 8px;
-  transition: all 0.3s ease;
-}
-
-.btn-danger:hover {
-  background: rgba(239, 68, 68, 0.3);
-}
-
-/* Input styles */
-.input-field {
-  background: rgba(0,0,0,0.4);
-  border: 1px solid var(--pluto-border);
-  border-radius: 8px;
-  padding: 10px 14px;
-  color: #e5e7eb;
-  font-size: 14px;
-  transition: all 0.3s ease;
-  width: 100%;
-}
-
-.input-field:focus {
-  outline: none;
-  border-color: var(--pluto-accent);
-  box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.1);
-}
-
-/* Select styles */
-.select-field {
-  background: rgba(0,0,0,0.4);
-  border: 1px solid var(--pluto-border);
-  border-radius: 8px;
-  padding: 10px 14px;
-  color: #e5e7eb;
-  font-size: 14px;
-  cursor: pointer;
-  width: 100%;
-}
-
-.select-field:focus {
-  outline: none;
-  border-color: var(--pluto-accent);
+.number-down {
+  color: var(--error);
 }

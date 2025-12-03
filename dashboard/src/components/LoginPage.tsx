@@ -11,6 +11,7 @@ export const LoginPage: React.FC<Props> = ({ onLoggedIn, baseURL }) => {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [logoError, setLogoError] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -31,45 +32,56 @@ export const LoginPage: React.FC<Props> = ({ onLoggedIn, baseURL }) => {
   }
 
   return (
-    <div className="min-h-screen bg-pluto-bg flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Background effects */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-pluto-accent/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-pluto-blue/5 rounded-full blur-3xl" />
-      </div>
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden" style={{ background: 'var(--bg-primary)' }}>
+      {/* Animated Background */}
+      <div className="animated-bg" />
 
-      {/* Stars effect */}
-      <div className="absolute inset-0">
-        {Array.from({ length: 50 }).map((_, i) => (
+      {/* Floating particles effect */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {Array.from({ length: 30 }).map((_, i) => (
           <div
             key={i}
-            className="absolute w-1 h-1 bg-white/20 rounded-full"
+            className="absolute w-1 h-1 rounded-full"
             style={{
+              background: 'rgba(255, 167, 38, 0.3)',
               left: `${Math.random() * 100}%`,
               top: `${Math.random() * 100}%`,
+              animation: `logoFloat ${3 + Math.random() * 4}s ease-in-out infinite`,
               animationDelay: `${Math.random() * 3}s`,
             }}
           />
         ))}
       </div>
 
-      <div className="relative z-10 w-full max-w-md">
+      <div className="page-enter relative z-10 w-full max-w-md">
         {/* Logo/Branding */}
         <div className="text-center mb-8">
-          <img 
-            src="/branding/pluto_launcher_logo.png" 
-            alt="Pluto Lander" 
-            className="w-32 h-32 mx-auto mb-4 object-contain"
-          />
-          <h1 className="text-3xl font-bold text-white mb-2">Pluto Lander</h1>
-          <p className="text-gray-400">Trading Bot Control Center</p>
+          <div className="logo-float logo-hover inline-block mb-4">
+            {!logoError ? (
+              <img 
+                src="/branding/pluto_launcher_logo.png" 
+                alt="Pluto Lander"
+                className="w-32 h-32 object-contain mx-auto"
+                onError={() => setLogoError(true)}
+              />
+            ) : (
+              <div 
+                className="w-24 h-24 rounded-full mx-auto glow-box-accent"
+                style={{ background: 'var(--accent)' }}
+              />
+            )}
+          </div>
+          <h1 className="text-4xl font-light mb-2" style={{ color: 'var(--text-primary)', letterSpacing: '0.02em' }}>
+            Pluto Lander
+          </h1>
+          <p style={{ color: 'var(--text-secondary)' }}>Trading Bot Control Center</p>
         </div>
 
         {/* Login Card */}
-        <div className="bg-pluto-panel/90 backdrop-blur-xl border border-pluto-border rounded-2xl p-8 shadow-pluto">
+        <div className="card" style={{ background: 'rgba(26, 31, 58, 0.9)', backdropFilter: 'blur(20px)' }}>
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm text-gray-400 mb-2">Username</label>
+              <label className="block text-sm mb-2" style={{ color: 'var(--text-secondary)' }}>Username</label>
               <input
                 type="text"
                 className="input-field"
@@ -81,7 +93,7 @@ export const LoginPage: React.FC<Props> = ({ onLoggedIn, baseURL }) => {
             </div>
             
             <div>
-              <label className="block text-sm text-gray-400 mb-2">Password</label>
+              <label className="block text-sm mb-2" style={{ color: 'var(--text-secondary)' }}>Password</label>
               <input
                 type="password"
                 className="input-field"
@@ -93,7 +105,14 @@ export const LoginPage: React.FC<Props> = ({ onLoggedIn, baseURL }) => {
             </div>
 
             {error && (
-              <div className="flex items-center gap-2 text-pluto-red text-sm bg-pluto-red/10 border border-pluto-red/20 rounded-lg px-4 py-3">
+              <div 
+                className="flex items-center gap-2 text-sm rounded-lg px-4 py-3"
+                style={{ 
+                  background: 'rgba(244, 67, 54, 0.1)',
+                  border: '1px solid rgba(244, 67, 54, 0.3)',
+                  color: 'var(--error)'
+                }}
+              >
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                 </svg>
@@ -104,7 +123,8 @@ export const LoginPage: React.FC<Props> = ({ onLoggedIn, baseURL }) => {
             <button
               type="submit"
               disabled={loading || !username || !password}
-              className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="btn-primary w-full flex items-center justify-center gap-2"
+              style={{ opacity: loading || !username || !password ? 0.5 : 1 }}
             >
               {loading ? (
                 <>
@@ -120,15 +140,15 @@ export const LoginPage: React.FC<Props> = ({ onLoggedIn, baseURL }) => {
             </button>
           </form>
 
-          <div className="mt-6 pt-6 border-t border-pluto-border text-center">
-            <p className="text-xs text-gray-500">
+          <div className="mt-6 pt-6 text-center" style={{ borderTop: '1px solid var(--border-color)' }}>
+            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
               Secure connection to your Pluto Lander device
             </p>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="text-center mt-6 text-xs text-gray-600">
+        <div className="text-center mt-6 text-xs" style={{ color: 'var(--text-secondary)' }}>
           Pluto Lander Trading Bot v3.0
         </div>
       </div>

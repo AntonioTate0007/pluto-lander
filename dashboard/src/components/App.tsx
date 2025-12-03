@@ -24,9 +24,10 @@ export const App: React.FC = () => {
   const [token, setToken] = useState<string | null>(localStorage.getItem('pluto_token'))
   const [activeTab, setActiveTab] = useState<Tab>('dashboard')
   const [btcPrice, setBtcPrice] = useState<number>(0)
+  const [prevBtcPrice, setPrevBtcPrice] = useState<number>(0)
   const [isConnected, setIsConnected] = useState(false)
+  const [logoError, setLogoError] = useState(false)
   
-  // Use same origin for API calls (works when served from Pi)
   const baseURL = ''
 
   useEffect(() => {
@@ -37,20 +38,22 @@ export const App: React.FC = () => {
     }
   }, [token])
 
-  // Fetch BTC price
+  // Fetch BTC price with smooth updates
   useEffect(() => {
     const fetchPrice = async () => {
       try {
         const res = await fetch('https://api.coinbase.com/v2/prices/BTC-USD/spot')
         const data = await res.json()
-        setBtcPrice(parseFloat(data.data.amount))
+        const newPrice = parseFloat(data.data.amount)
+        setPrevBtcPrice(btcPrice)
+        setBtcPrice(newPrice)
         setIsConnected(true)
       } catch {
         setIsConnected(false)
       }
     }
     fetchPrice()
-    const interval = setInterval(fetchPrice, 10000)
+    const interval = setInterval(fetchPrice, 5000)
     return () => clearInterval(interval)
   }, [])
 
@@ -63,49 +66,74 @@ export const App: React.FC = () => {
     return <LoginPage onLoggedIn={setToken} baseURL={baseURL} />
   }
 
+  const priceChange = btcPrice - prevBtcPrice
+  const priceDirection = priceChange >= 0 ? 'up' : 'down'
+
   return (
     <AuthContext.Provider value={{ token, baseURL, logout }}>
-      <div className="min-h-screen bg-pluto-bg flex flex-col">
-        {/* Header */}
-        <header className="h-16 border-b border-pluto-border bg-pluto-panel/80 backdrop-blur-sm flex items-center justify-between px-6 sticky top-0 z-50">
+      <div className="min-h-screen flex flex-col" style={{ background: 'var(--bg-primary)' }}>
+        {/* Animated Background */}
+        <div className="animated-bg" />
+        
+        {/* Header with Shimmer */}
+        <header className="header-enter header-shimmer h-16 flex items-center justify-between px-6 sticky top-0 z-50" style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)' }}>
           <div className="flex items-center gap-3">
-            <div className="w-3 h-3 rounded-full bg-pluto-accent animate-pulse-slow shadow-glow-accent" />
-            <h1 className="text-xl font-semibold text-white">Pluto Lander</h1>
+            {/* Logo with float animation */}
+            <div className="logo-float logo-hover">
+              {!logoError ? (
+                <img 
+                  src="/branding/pluto_launcher_logo.png" 
+                  alt="Pluto Lander"
+                  className="w-10 h-10 object-contain"
+                  onError={() => setLogoError(true)}
+                />
+              ) : (
+                <div 
+                  className="w-10 h-10 rounded-full glow-box-accent"
+                  style={{ background: 'var(--accent)' }}
+                />
+              )}
+            </div>
+            <h1 className="text-xl font-medium" style={{ color: 'var(--text-primary)' }}>Pluto Lander</h1>
           </div>
           
           {/* Navigation Tabs */}
           <nav className="flex items-center h-full">
-            <button
-              onClick={() => setActiveTab('dashboard')}
-              className={`tab ${activeTab === 'dashboard' ? 'active' : ''}`}
-            >
-              Dashboard
-            </button>
-            <button
-              onClick={() => setActiveTab('settings')}
-              className={`tab ${activeTab === 'settings' ? 'active' : ''}`}
-            >
-              Settings
-            </button>
-            <button
-              onClick={() => setActiveTab('trades')}
-              className={`tab ${activeTab === 'trades' ? 'active' : ''}`}
-            >
-              Trades
-            </button>
+            {(['dashboard', 'settings', 'trades'] as Tab[]).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`tab ${activeTab === tab ? 'active' : ''}`}
+              >
+                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              </button>
+            ))}
           </nav>
 
-          {/* Right side - BTC Price & Status */}
+          {/* BTC Price & Status */}
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 px-4 py-2 rounded-lg border border-pluto-accent/40 bg-pluto-accent/10">
-              <span className="text-pluto-accent font-bold text-lg">₿</span>
-              <span className="font-mono font-semibold text-white">
+            <div 
+              className="flex items-center gap-2 px-4 py-2 rounded-lg glow-box-accent"
+              style={{ 
+                border: '1px solid var(--accent)',
+                background: 'rgba(255, 167, 38, 0.1)'
+              }}
+            >
+              <span className="text-lg font-bold glow-accent" style={{ color: 'var(--accent)' }}>₿</span>
+              <span 
+                className={`font-medium number-update ${priceDirection === 'up' ? 'number-up' : priceDirection === 'down' ? 'number-down' : ''}`}
+                style={{ 
+                  color: 'var(--text-primary)',
+                  fontVariantNumeric: 'tabular-nums',
+                  transition: 'color 0.3s ease'
+                }}
+              >
                 {btcPrice > 0 ? btcPrice.toLocaleString('en-US', { maximumFractionDigits: 0 }) : '---'}
               </span>
             </div>
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-gray-400">IP:</span>
-              <span className={isConnected ? 'text-pluto-green' : 'text-pluto-red'}>
+              <span style={{ color: 'var(--text-secondary)' }}>IP:</span>
+              <span style={{ color: isConnected ? 'var(--success)' : 'var(--error)' }}>
                 {isConnected ? 'Connected' : 'Offline'}
               </span>
             </div>
@@ -113,7 +141,7 @@ export const App: React.FC = () => {
         </header>
 
         {/* Main Content */}
-        <main className="flex-1 overflow-auto">
+        <main className="flex-1 overflow-auto relative">
           {activeTab === 'dashboard' && <DashboardPage btcPrice={btcPrice} />}
           {activeTab === 'settings' && <SettingsPage />}
           {activeTab === 'trades' && <TradesPage />}
