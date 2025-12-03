@@ -3,6 +3,7 @@ import { LoginPage } from './LoginPage'
 import { DashboardPage } from './DashboardPage'
 import { SettingsPage } from './SettingsPage'
 import { TradesPage } from './TradesPage'
+import { PiDisplayPage } from './PiDisplayPage'
 
 interface AuthContextType {
   token: string | null
@@ -20,6 +21,12 @@ export const useAuth = () => useContext(AuthContext)
 
 type Tab = 'dashboard' | 'settings' | 'trades'
 
+// Check if we're in kiosk/Pi display mode
+const isKioskMode = () => {
+  const path = window.location.pathname.toLowerCase()
+  return path.includes('/kiosk') || path.includes('/pi') || path.includes('/display')
+}
+
 export const App: React.FC = () => {
   const [token, setToken] = useState<string | null>(localStorage.getItem('pluto_token'))
   const [activeTab, setActiveTab] = useState<Tab>('dashboard')
@@ -27,8 +34,16 @@ export const App: React.FC = () => {
   const [prevBtcPrice, setPrevBtcPrice] = useState<number>(0)
   const [isConnected, setIsConnected] = useState(false)
   const [logoError, setLogoError] = useState(false)
+  const [kioskMode, setKioskMode] = useState(isKioskMode())
   
   const baseURL = ''
+
+  // Listen for URL changes
+  useEffect(() => {
+    const handlePopState = () => setKioskMode(isKioskMode())
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [])
 
   useEffect(() => {
     if (token) {
@@ -60,6 +75,30 @@ export const App: React.FC = () => {
   const logout = () => {
     setToken(null)
     setActiveTab('dashboard')
+  }
+
+  const exitKioskMode = () => {
+    window.history.pushState({}, '', '/')
+    setKioskMode(false)
+  }
+
+  const enterKioskMode = () => {
+    window.history.pushState({}, '', '/kiosk')
+    setKioskMode(true)
+  }
+
+  // Kiosk mode - show Pi display
+  if (kioskMode) {
+    if (!token) {
+      return <LoginPage onLoggedIn={setToken} baseURL={baseURL} />
+    }
+    return (
+      <PiDisplayPage 
+        token={token} 
+        baseURL={baseURL} 
+        onExitKiosk={exitKioskMode}
+      />
+    )
   }
 
   if (!token) {
@@ -137,6 +176,22 @@ export const App: React.FC = () => {
                 {isConnected ? 'Connected' : 'Offline'}
               </span>
             </div>
+            {/* Kiosk Mode Button */}
+            <button
+              onClick={enterKioskMode}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg transition-all hover:scale-105"
+              style={{ 
+                background: 'rgba(79, 195, 247, 0.1)',
+                border: '1px solid rgba(79, 195, 247, 0.3)',
+                color: 'var(--info)'
+              }}
+              title="Open Pi Display Mode"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              <span className="text-xs font-medium">Pi Display</span>
+            </button>
           </div>
         </header>
 

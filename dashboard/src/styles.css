@@ -1,8 +1,8 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import url('https://fonts.googleapis.com/css2?family=Segoe+UI:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
 
 :root {
   --bg-primary: #0f1419;
@@ -331,6 +331,34 @@ body {
   box-shadow: 0 0 0 3px rgba(255, 167, 38, 0.1);
 }
 
+.select-field {
+  background: rgba(0,0,0,0.4);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 12px 16px;
+  color: var(--text-primary);
+  font-size: 14px;
+  width: 100%;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%23888' viewBox='0 0 24 24'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 20px;
+}
+
+.select-field:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(255, 167, 38, 0.1);
+}
+
+.select-field option {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
 /* ============== WIDGET PREVIEW ============== */
 .widget-preview {
   border: 2px solid var(--border-color);
@@ -433,4 +461,657 @@ body {
 
 .number-down {
   color: var(--error);
+}
+
+/* ============== PI DISPLAY - 5" KIOSK MODE ============== */
+/* Optimized for 800x480 Raspberry Pi touchscreen */
+
+.pi-display {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, #0a0e14 0%, #0f1419 50%, #1a1f3a 100%);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  user-select: none;
+  cursor: default;
+}
+
+/* Status Bar */
+.pi-status-bar {
+  height: 48px;
+  background: rgba(0, 0, 0, 0.6);
+  border-bottom: 1px solid rgba(255, 167, 38, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  flex-shrink: 0;
+}
+
+.pi-status-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pi-status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  animation: statusPulse 2s ease-in-out infinite;
+}
+
+.pi-status-dot.active {
+  background: var(--success);
+  box-shadow: 0 0 10px var(--success);
+}
+
+.pi-status-dot.standby {
+  background: var(--accent);
+  box-shadow: 0 0 10px var(--accent);
+}
+
+.pi-status-dot.offline {
+  background: var(--error);
+  box-shadow: 0 0 10px var(--error);
+  animation: none;
+}
+
+.pi-status-text {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  color: var(--text-secondary);
+}
+
+.pi-live-badge {
+  background: var(--error);
+  color: white;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  animation: badgePulse 1.5s ease-in-out infinite;
+}
+
+.pi-paper-badge {
+  background: var(--info);
+  color: white;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.pi-status-center {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.pi-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pi-logo-icon {
+  font-size: 20px;
+  animation: logoFloat 3s ease-in-out infinite;
+}
+
+.pi-logo-text {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 3px;
+  background: linear-gradient(90deg, var(--accent), #ffd54f);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.pi-status-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.pi-connection {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+
+.pi-connection.connected {
+  color: var(--success);
+}
+
+.pi-connection.disconnected {
+  color: var(--error);
+}
+
+.pi-connection-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.pi-clock {
+  text-align: right;
+}
+
+.pi-time {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.pi-date {
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+/* Main Content */
+.pi-content {
+  flex: 1;
+  padding: 12px;
+  overflow: hidden;
+}
+
+/* Grid Layout */
+.pi-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 12px;
+  height: 100%;
+}
+
+.pi-card {
+  background: rgba(26, 31, 58, 0.8);
+  border: 1px solid rgba(255, 167, 38, 0.2);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.pi-card:hover {
+  border-color: rgba(255, 167, 38, 0.5);
+  box-shadow: 0 0 20px rgba(255, 167, 38, 0.1);
+}
+
+.pi-card-large {
+  padding: 20px;
+}
+
+.pi-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.pi-card-header-sm {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+}
+
+.pi-icon {
+  font-size: 18px;
+}
+
+.pi-icon-btc {
+  font-size: 22px;
+  color: var(--accent);
+  text-shadow: 0 0 15px var(--accent-glow);
+}
+
+.pi-value-xl {
+  font-size: 36px;
+  font-weight: 300;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.pi-value-lg {
+  font-size: 22px;
+  font-weight: 400;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.pi-btc {
+  color: var(--accent);
+  text-shadow: 0 0 20px var(--accent-glow);
+  transition: all 0.3s ease;
+}
+
+.pi-btc.up {
+  color: var(--success);
+  text-shadow: 0 0 20px rgba(76, 175, 80, 0.4);
+}
+
+.pi-btc.down {
+  color: var(--error);
+  text-shadow: 0 0 20px rgba(244, 67, 54, 0.4);
+}
+
+.pi-change {
+  font-size: 14px;
+  font-weight: 500;
+  margin-top: 6px;
+}
+
+.pi-change.positive {
+  color: var(--success);
+}
+
+.pi-change.negative {
+  color: var(--error);
+}
+
+.positive {
+  color: var(--success) !important;
+}
+
+.negative {
+  color: var(--error) !important;
+}
+
+.pi-sparkline {
+  margin-top: 8px;
+}
+
+.pi-trend {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.pi-trend.up {
+  color: var(--success);
+}
+
+.pi-trend.down {
+  color: var(--error);
+}
+
+/* Positions View */
+.pi-positions {
+  height: 100%;
+  background: rgba(26, 31, 58, 0.8);
+  border: 1px solid rgba(255, 167, 38, 0.2);
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.pi-positions-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  background: rgba(0, 0, 0, 0.3);
+  border-bottom: 1px solid rgba(255, 167, 38, 0.2);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.pi-badge {
+  background: var(--accent);
+  color: #000;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.pi-positions-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.pi-position-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  margin-bottom: 6px;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.pi-position-row:hover {
+  border-color: rgba(255, 167, 38, 0.3);
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.pi-position-symbol {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pi-position-symbol .symbol {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-family: 'SF Mono', 'Consolas', monospace;
+}
+
+.pi-position-symbol .qty {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.pi-position-value {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pi-position-value .value {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.pi-position-value .pl {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.pi-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.pi-empty-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+  opacity: 0.5;
+}
+
+/* Bottom Bar */
+.pi-bottom-bar {
+  height: 52px;
+  background: rgba(0, 0, 0, 0.6);
+  border-top: 1px solid rgba(255, 167, 38, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  flex-shrink: 0;
+}
+
+.pi-nav-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.pi-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pi-nav-btn:hover {
+  background: rgba(255, 167, 38, 0.1);
+  border-color: rgba(255, 167, 38, 0.3);
+  color: var(--text-primary);
+}
+
+.pi-nav-btn.active {
+  background: rgba(255, 167, 38, 0.2);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.pi-nav-btn span {
+  font-size: 14px;
+}
+
+.pi-update-info {
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+/* Floating Menu */
+.pi-menu {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(15, 20, 25, 0.95);
+  border: 2px solid var(--accent);
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 0 40px rgba(255, 167, 38, 0.3);
+  animation: fadeInUp 0.3s ease-out;
+  z-index: 100;
+}
+
+.pi-menu-btn {
+  padding: 14px 32px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 180px;
+}
+
+.pi-menu-btn:hover {
+  background: rgba(255, 167, 38, 0.2);
+  border-color: var(--accent);
+}
+
+.pi-menu-btn.close {
+  background: rgba(244, 67, 54, 0.1);
+  border-color: rgba(244, 67, 54, 0.3);
+  color: var(--error);
+}
+
+.pi-menu-btn.close:hover {
+  background: rgba(244, 67, 54, 0.2);
+  border-color: var(--error);
+}
+
+/* Alerts Overlay */
+.pi-alerts {
+  position: absolute;
+  top: 60px;
+  right: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 50;
+  max-width: 280px;
+}
+
+.pi-alert {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: rgba(15, 20, 25, 0.95);
+  border-radius: 10px;
+  border-left: 3px solid var(--info);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.pi-alert.buy {
+  border-left-color: var(--success);
+}
+
+.pi-alert.sell {
+  border-left-color: var(--error);
+}
+
+.pi-alert.info {
+  border-left-color: var(--info);
+}
+
+.pi-alert-icon {
+  font-size: 20px;
+}
+
+.pi-alert-content {
+  flex: 1;
+}
+
+.pi-alert-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+}
+
+.pi-alert-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.pi-alert-message .symbol {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-family: 'SF Mono', 'Consolas', monospace;
+}
+
+.pi-alert-message .side {
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.pi-alert-message .side.buy {
+  background: rgba(76, 175, 80, 0.2);
+  color: var(--success);
+}
+
+.pi-alert-message .side.sell {
+  background: rgba(244, 67, 54, 0.2);
+  color: var(--error);
+}
+
+.pi-alert-message .confidence {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+/* Responsive adjustments for actual 800x480 */
+@media (max-width: 800px) and (max-height: 480px) {
+  .pi-status-bar {
+    height: 40px;
+    padding: 0 12px;
+  }
+  
+  .pi-logo-text {
+    font-size: 12px;
+    letter-spacing: 2px;
+  }
+  
+  .pi-time {
+    font-size: 14px;
+  }
+  
+  .pi-content {
+    padding: 8px;
+  }
+  
+  .pi-grid {
+    gap: 8px;
+  }
+  
+  .pi-card {
+    padding: 12px;
+  }
+  
+  .pi-card-large {
+    padding: 14px;
+  }
+  
+  .pi-value-xl {
+    font-size: 28px;
+  }
+  
+  .pi-value-lg {
+    font-size: 18px;
+  }
+  
+  .pi-bottom-bar {
+    height: 44px;
+    padding: 0 12px;
+  }
+  
+  .pi-nav-btn {
+    padding: 8px 12px;
+    font-size: 11px;
+  }
 }
