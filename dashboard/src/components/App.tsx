@@ -87,10 +87,50 @@ export const App: React.FC = () => {
     setKioskMode(true)
   }
 
+  // Auto-login for kiosk mode
+  useEffect(() => {
+    if (kioskMode && !token) {
+      const autoLogin = async () => {
+        try {
+          const form = new URLSearchParams()
+          form.append('username', 'admin')
+          form.append('password', 'pluto123')
+          form.append('grant_type', '')
+          const res = await fetch(`${baseURL}/api/auth/login`, {
+            method: 'POST',
+            body: form,
+          })
+          if (res.ok) {
+            const data = await res.json()
+            setToken(data.access_token)
+          }
+        } catch (e) {
+          console.error('Kiosk auto-login failed:', e)
+        }
+      }
+      autoLogin()
+    }
+  }, [kioskMode, token, baseURL])
+
   // Kiosk mode - show Pi display
   if (kioskMode) {
     if (!token) {
-      return <LoginPage onLoggedIn={setToken} baseURL={baseURL} />
+      // Show loading while auto-login happens
+      return (
+        <div style={{ 
+          background: '#0f1419', 
+          minHeight: '100vh', 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center',
+          flexDirection: 'column',
+          gap: '20px'
+        }}>
+          <div style={{ fontSize: '48px' }}>🚀</div>
+          <div style={{ color: '#ffa726', fontSize: '24px', fontWeight: 300 }}>Pluto Lander</div>
+          <div style={{ color: '#888', fontSize: '14px' }}>Initializing kiosk mode...</div>
+        </div>
+      )
     }
     return (
       <PiDisplayPage 
