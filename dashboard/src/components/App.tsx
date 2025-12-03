@@ -131,15 +131,17 @@ export const App: React.FC = () => {
 
   // Kiosk mode - show Pi display WITHOUT requiring login
   if (kioskMode) {
+    // In kiosk mode, always show the display - don't require token
     return (
       <PiDisplayPage 
-        token={token || 'kiosk-mode'} 
+        token={token || null} 
         baseURL={baseURL} 
         onExitKiosk={exitKioskMode}
       />
     )
   }
 
+  // Normal mode - require login
   if (!token) {
     return <LoginPage onLoggedIn={setToken} baseURL={baseURL} />
   }

@@ -1,399 +1,208 @@
 /**
- * Pluto Launcher - ESP32-2432S028 Display
- * ST7789V Driver - Cheap Yellow Display
- * 
- * Boot sequence test + Pluto Launcher UI
+ * PLUTO LANDER ESP32 - Reference Image Match
+ * Vertical layout: TIME | BLOCK HEIGHT | BOT STATUS
  */
 
 #include <Arduino.h>
 #include <TFT_eSPI.h>
-#include <SPI.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
+#include <ArduinoOTA.h>
 
-// Display instance
 TFT_eSPI tft = TFT_eSPI();
 
-// Colors - Pluto Lander theme
-#define COLOR_BG        0x0000  // Black
-#define COLOR_GOLD      0xFD20  // Gold accent
-#define COLOR_GREEN     0x07E0  // Positive
-#define COLOR_RED       0xF800  // Negative
-#define COLOR_CYAN      0x07FF  // Cyan accent
-#define COLOR_PURPLE    0x881F  // Purple accent
-#define COLOR_GRAY      0x7BEF  // Gray text
-#define COLOR_WHITE     0xFFFF  // White
+const char* ssid = "TW";
+const char* password = "4075752351";
 
-// WiFi credentials (update these)
-const char* ssid = "YOUR_WIFI_SSID";
-const char* password = "YOUR_WIFI_PASSWORD";
+#define BG     0x0000  // Pure black
+#define PANEL  tft.color565(20, 20, 24)
+#define GOLD   tft.color565(255, 193, 7)
+#define GREEN  tft.color565(76, 175, 80)
+#define RED    tft.color565(244, 67, 54)
+#define WHITE  0xFFFF
+#define GRAY   tft.color565(140, 140, 140)
 
-// Raspberry Pi backend URL
-const char* piUrl = "http://192.168.1.208:8000";
+int blockHeight = 890518;
+float blockChange = 5.3;
+int hours = 12, mins = 43;
+String botStatus = "Waiting for signal...";
 
-// Data variables
-float portfolioValue = 0;
-float dailyPL = 0;
-float dailyPLPercent = 0;
-float btcPrice = 0;
-String trend = "neutral";
-String position = "STANDBY";
-String tickerText = "Initializing...";
-int chartData[60] = {0};
-int chartIndex = 0;
-
-// Animation variables
-unsigned long lastUpdate = 0;
-unsigned long lastChartScroll = 0;
-unsigned long lastTickerScroll = 0;
-int tickerX = 320;
-float logoOpacity = 0;
-int bootPhase = 0;
-
-// Screen dimensions (rotated)
-#define SCREEN_W 320
-#define SCREEN_H 240
-
-//===========================================
-// BOOT ANIMATION
-//===========================================
-
-void drawBootSequence() {
-    // Phase 0: Black screen
-    if (bootPhase == 0) {
-        tft.fillScreen(COLOR_BG);
-        delay(200);
-        bootPhase = 1;
-    }
+void draw() {
+    tft.fillScreen(BG);
     
-    // Phase 1: Draw glowing ring
-    if (bootPhase == 1) {
-        int cx = SCREEN_W / 2;
-        int cy = SCREEN_H / 2 - 20;
-        
-        // Glow rings (outer to inner)
-        for (int r = 60; r > 40; r -= 2) {
-            uint16_t color = tft.color565(255 * (60-r) / 20, 165 * (60-r) / 20, 38 * (60-r) / 20);
-            tft.drawCircle(cx, cy, r, color);
-            delay(20);
-        }
-        
-        // Inner solid circle
-        tft.fillCircle(cx, cy, 40, COLOR_GOLD);
-        delay(100);
-        bootPhase = 2;
-    }
+    // ========== SECTION 1: TIME (Top) ==========
+    tft.fillRoundRect(8, 8, 304, 90, 10, PANEL);
     
-    // Phase 2: Draw rocket icon
-    if (bootPhase == 2) {
-        int cx = SCREEN_W / 2;
-        int cy = SCREEN_H / 2 - 20;
-        
-        // Simple rocket shape
-        tft.fillTriangle(cx, cy-25, cx-12, cy+10, cx+12, cy+10, COLOR_WHITE);
-        tft.fillRect(cx-8, cy+10, 16, 15, COLOR_GRAY);
-        tft.fillTriangle(cx-8, cy+25, cx-15, cy+35, cx-8, cy+35, COLOR_RED);
-        tft.fillTriangle(cx+8, cy+25, cx+15, cy+35, cx+8, cy+35, COLOR_RED);
-        
-        // Flame
-        tft.fillTriangle(cx, cy+35, cx-6, cy+25, cx+6, cy+25, COLOR_GOLD);
-        
-        delay(300);
-        bootPhase = 3;
-    }
+    tft.setTextColor(GRAY, PANEL);
+    tft.setTextDatum(TC_DATUM);
+    tft.drawString("Local Time", 160, 20, 2);
     
-    // Phase 3: Text fade in
-    if (bootPhase == 3) {
-        tft.setTextColor(COLOR_GOLD, COLOR_BG);
-        tft.setTextDatum(MC_DATUM);
-        tft.drawString("PLUTO LANDER", SCREEN_W/2, SCREEN_H/2 + 50, 4);
-        
-        tft.setTextColor(COLOR_GRAY, COLOR_BG);
-        tft.drawString("Trading Bot Display", SCREEN_W/2, SCREEN_H/2 + 75, 2);
-        
-        delay(500);
-        bootPhase = 4;
-    }
+    // Huge time display
+    char timeStr[8];
+    sprintf(timeStr, "%02d:%02d", hours, mins);
+    tft.setTextColor(WHITE, PANEL);
+    tft.drawString(timeStr, 160, 50, 7);
     
-    // Phase 4: Gold flash
-    if (bootPhase == 4) {
-        tft.fillScreen(COLOR_GOLD);
-        delay(150);
-        tft.fillScreen(COLOR_BG);
-        delay(100);
-        bootPhase = 5;
-    }
-}
-
-//===========================================
-// UI DRAWING FUNCTIONS
-//===========================================
-
-void drawTopBar() {
-    // Background
-    tft.fillRect(0, 0, SCREEN_W, 28, tft.color565(20, 20, 30));
+    // ========== SECTION 2: BLOCK HEIGHT (Middle) ==========
+    tft.fillRoundRect(8, 106, 304, 120, 10, PANEL);
     
-    // WiFi icon
-    if (WiFi.status() == WL_CONNECTED) {
-        tft.fillCircle(15, 14, 6, COLOR_GREEN);
-    } else {
-        tft.fillCircle(15, 14, 6, COLOR_RED);
-    }
-    
-    // Time
-    tft.setTextColor(COLOR_WHITE, tft.color565(20, 20, 30));
+    // Header with icon
+    tft.fillCircle(20, 120, 6, GOLD);
+    tft.setTextColor(GRAY, PANEL);
     tft.setTextDatum(TL_DATUM);
+    tft.drawString("Block Height", 32, 115, 2);
     
-    // Get time (or show placeholder)
-    char timeStr[10];
-    sprintf(timeStr, "%02d:%02d", hour(), minute());
-    tft.drawString(timeStr, 30, 6, 2);
-    
-    // Title
-    tft.setTextColor(COLOR_GOLD, tft.color565(20, 20, 30));
-    tft.setTextDatum(MC_DATUM);
-    tft.drawString("PLUTO LANDER", SCREEN_W/2, 14, 2);
-    
-    // Trend indicator
-    uint16_t trendColor = COLOR_GRAY;
-    if (trend == "up") trendColor = COLOR_GREEN;
-    else if (trend == "down") trendColor = COLOR_RED;
-    tft.fillCircle(SCREEN_W - 15, 14, 6, trendColor);
-}
-
-void drawMainMetrics() {
-    int y = 35;
-    
-    // Portfolio Value
-    tft.setTextColor(COLOR_GRAY, COLOR_BG);
-    tft.setTextDatum(TL_DATUM);
-    tft.drawString("Portfolio Value", 10, y, 2);
-    
-    tft.setTextColor(COLOR_WHITE, COLOR_BG);
-    char valStr[20];
-    sprintf(valStr, "$%.2f", portfolioValue);
-    tft.drawString(valStr, 10, y + 18, 4);
-    
-    // Daily P&L
-    y += 55;
-    tft.setTextColor(COLOR_GRAY, COLOR_BG);
-    tft.drawString("Daily P&L", 10, y, 2);
-    
-    uint16_t plColor = dailyPL >= 0 ? COLOR_GREEN : COLOR_RED;
-    tft.setTextColor(plColor, COLOR_BG);
-    char plStr[30];
-    sprintf(plStr, "%s$%.2f (%.1f%%)", dailyPL >= 0 ? "+" : "", dailyPL, dailyPLPercent);
-    tft.drawString(plStr, 10, y + 18, 2);
-    
-    // BTC Price (right side)
-    tft.setTextColor(COLOR_GRAY, COLOR_BG);
+    // Percentage on right
+    char pctStr[12];
+    sprintf(pctStr, "%.1f%%", blockChange);
     tft.setTextDatum(TR_DATUM);
-    tft.drawString("BTC-USD", SCREEN_W - 10, 35, 2);
+    tft.setTextColor(GREEN, PANEL);
+    tft.drawString(pctStr, 312, 115, 2);
     
-    tft.setTextColor(COLOR_GOLD, COLOR_BG);
-    char btcStr[15];
-    sprintf(btcStr, "$%.0f", btcPrice);
-    tft.drawString(btcStr, SCREEN_W - 10, 53, 4);
+    // Massive block number
+    tft.setTextColor(WHITE, PANEL);
+    tft.setTextDatum(TC_DATUM);
+    char blockStr[20];
+    sprintf(blockStr, "%d", blockHeight);
+    tft.drawString(blockStr, 160, 155, 6);
     
-    // Position Status
-    tft.setTextDatum(TR_DATUM);
-    tft.setTextColor(COLOR_GRAY, COLOR_BG);
-    tft.drawString("Status", SCREEN_W - 10, 90, 2);
-    
-    uint16_t posColor = COLOR_CYAN;
-    if (position == "LONG") posColor = COLOR_GREEN;
-    else if (position == "SHORT") posColor = COLOR_RED;
-    tft.setTextColor(posColor, COLOR_BG);
-    tft.drawString(position.c_str(), SCREEN_W - 10, 108, 2);
-}
-
-void drawMiniChart() {
-    int chartY = 135;
-    int chartH = 50;
-    int chartW = SCREEN_W - 20;
-    
-    // Chart background
-    tft.fillRect(10, chartY, chartW, chartH, tft.color565(15, 15, 20));
-    tft.drawRect(10, chartY, chartW, chartH, tft.color565(40, 40, 50));
-    
-    // Draw line chart
-    if (chartIndex > 1) {
-        int maxVal = 1;
-        int minVal = 100000;
-        for (int i = 0; i < chartIndex && i < 60; i++) {
-            if (chartData[i] > maxVal) maxVal = chartData[i];
-            if (chartData[i] < minVal) minVal = chartData[i];
-        }
-        int range = maxVal - minVal;
-        if (range < 1) range = 1;
-        
-        for (int i = 1; i < chartIndex && i < 60; i++) {
-            int x1 = 10 + ((i-1) * chartW / 60);
-            int x2 = 10 + (i * chartW / 60);
-            int y1 = chartY + chartH - ((chartData[i-1] - minVal) * (chartH-4) / range) - 2;
-            int y2 = chartY + chartH - ((chartData[i] - minVal) * (chartH-4) / range) - 2;
-            tft.drawLine(x1, y1, x2, y2, COLOR_CYAN);
-        }
-    }
-}
-
-void drawTicker() {
-    int tickerY = 195;
-    
-    // Ticker background
-    tft.fillRect(0, tickerY, SCREEN_W, 24, tft.color565(25, 20, 10));
-    
-    // Scrolling text
-    tft.setTextColor(COLOR_GOLD, tft.color565(25, 20, 10));
-    tft.setTextDatum(TL_DATUM);
-    tft.drawString(tickerText.c_str(), tickerX, tickerY + 4, 2);
-    
-    // Scroll ticker
-    tickerX -= 2;
-    int textWidth = tickerText.length() * 12;
-    if (tickerX < -textWidth) {
-        tickerX = SCREEN_W;
-    }
-}
-
-void drawStatusBar() {
-    int y = SCREEN_H - 20;
-    
-    // Background
-    tft.fillRect(0, y, SCREEN_W, 20, tft.color565(15, 15, 20));
-    
-    // WiFi signal
-    tft.setTextColor(COLOR_GRAY, tft.color565(15, 15, 20));
-    tft.setTextDatum(TL_DATUM);
-    if (WiFi.status() == WL_CONNECTED) {
-        tft.drawString("WiFi OK", 5, y + 3, 1);
-    } else {
-        tft.setTextColor(COLOR_RED, tft.color565(15, 15, 20));
-        tft.drawString("No WiFi", 5, y + 3, 1);
+    // Green sparkline graph
+    int y0 = 200;
+    int prevY = y0;
+    for(int i = 0; i < 280; i += 4) {
+        int y = y0 + random(-8, 8);
+        tft.drawLine(20 + i - 4, prevY, 20 + i, y, GREEN);
+        prevY = y;
     }
     
-    // FPS / Update time
-    tft.setTextColor(COLOR_GRAY, tft.color565(15, 15, 20));
-    tft.setTextDatum(TR_DATUM);
-    tft.drawString("Pluto Lander v3.0", SCREEN_W - 5, y + 3, 1);
+    // ========== SECTION 3: BOT STATUS (Bottom) ==========
+    tft.fillRoundRect(8, 234, 304, 100, 10, PANEL);
+    
+    tft.setTextColor(GOLD, PANEL);
+    tft.setTextDatum(TC_DATUM);
+    tft.drawString("Bot Ready", 160, 250, 2);
+    
+    tft.setTextColor(GRAY, PANEL);
+    tft.drawString(botStatus, 160, 280, 2);
+    
+    // Status indicator bar
+    tft.fillRect(60, 310, 200, 4, GRAY);
+    
+    // Footer
+    tft.setTextColor(GRAY, BG);
+    tft.setTextDatum(BC_DATUM);
+    tft.drawString("PLUTO LAUNCHER", 160, 468, 2);
 }
 
-//===========================================
-// DATA FETCHING
-//===========================================
-
-void fetchDataFromPi() {
+void fetchData() {
     if (WiFi.status() != WL_CONNECTED) return;
     
     HTTPClient http;
     
-    // Fetch BTC price from Coinbase
-    http.begin("https://api.coinbase.com/v2/prices/BTC-USD/spot");
-    int httpCode = http.GET();
-    if (httpCode == 200) {
-        String payload = http.getString();
-        JsonDocument doc;
-        deserializeJson(doc, payload);
-        btcPrice = doc["data"]["amount"].as<float>();
+    // Fetch block height
+    http.begin("https://mempool.space/api/blocks/tip/height");
+    http.setTimeout(5000);
+    if (http.GET() == 200) {
+        blockHeight = http.getString().toInt();
     }
     http.end();
     
-    // Add to chart
-    chartData[chartIndex % 60] = (int)btcPrice;
-    chartIndex++;
-    
-    // TODO: Fetch from Pi backend when available
-    // For now, use placeholder data
-    portfolioValue = 10000 + random(-500, 500);
-    dailyPL = random(-100, 200);
-    dailyPLPercent = dailyPL / 100.0;
-    
-    tickerText = "BTC: $" + String((int)btcPrice) + " | System Active | Waiting for signals...";
+    // Calculate change (mock for now)
+    blockChange = 5.3 + random(-50, 50) / 100.0;
 }
 
-int hour() { return (millis() / 3600000) % 24; }
-int minute() { return (millis() / 60000) % 60; }
-
-//===========================================
-// SETUP & LOOP
-//===========================================
+void setupOTA() {
+    ArduinoOTA.setHostname("pluto-esp32");
+    ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+        int pct = (progress * 100) / total;
+        tft.fillRect(60, 200, 200, 20, BG);
+        tft.fillRect(62, 202, (pct * 196) / 100, 16, GREEN);
+        
+        char buf[10];
+        sprintf(buf, "%d%%", pct);
+        tft.setTextColor(WHITE, BG);
+        tft.setTextDatum(MC_DATUM);
+        tft.drawString(buf, 160, 230, 2);
+    });
+    ArduinoOTA.begin();
+}
 
 void setup() {
-    Serial.begin(115200);
-    delay(300);
+    pinMode(21, OUTPUT);
+    digitalWrite(21, HIGH);
     
-    // Turn on backlight
-    pinMode(TFT_BL, OUTPUT);
-    digitalWrite(TFT_BL, HIGH);
-    
-    Serial.println("Initializing ST7789V...");
-    
-    // Initialize display
     tft.init();
-    tft.setRotation(1);  // Landscape
-    tft.fillScreen(COLOR_BG);
+    tft.setRotation(0);  // Portrait
+    tft.invertDisplay(false);
+    tft.fillScreen(BG);
     
-    Serial.println("Display initialized!");
-    
-    // Run boot animation
-    while (bootPhase < 5) {
-        drawBootSequence();
-    }
-    
-    Serial.println("Boot sequence complete!");
-    
-    // Connect to WiFi
-    tft.fillScreen(COLOR_BG);
-    tft.setTextColor(COLOR_WHITE, COLOR_BG);
+    // Boot screen
+    tft.setTextColor(GOLD, BG);
     tft.setTextDatum(MC_DATUM);
-    tft.drawString("Connecting to WiFi...", SCREEN_W/2, SCREEN_H/2, 2);
+    tft.drawString("PLUTO", 120, 200, 4);
+    tft.drawString("LAUNCHER", 120, 240, 4);
+    
+    tft.setTextColor(GRAY, BG);
+    tft.drawString("Connecting...", 120, 300, 2);
     
     WiFi.begin(ssid, password);
     int attempts = 0;
-    while (WiFi.status() != WL_CONNECTED && attempts < 20) {
+    while (WiFi.status() != WL_CONNECTED && attempts < 30) {
         delay(500);
-        Serial.print(".");
         attempts++;
     }
     
     if (WiFi.status() == WL_CONNECTED) {
-        Serial.println("\nWiFi connected!");
-        tft.drawString("WiFi Connected!", SCREEN_W/2, SCREEN_H/2 + 20, 2);
-    } else {
-        Serial.println("\nWiFi failed, continuing...");
-        tft.drawString("WiFi Failed - Offline Mode", SCREEN_W/2, SCREEN_H/2 + 20, 2);
+        tft.setTextColor(GREEN, BG);
+        tft.drawString("Connected!", 120, 350, 2);
+        setupOTA();
+        delay(1000);
     }
     
-    delay(1000);
-    tft.fillScreen(COLOR_BG);
-    
-    // Initial data fetch
-    fetchDataFromPi();
+    fetchData();
+    draw();
 }
 
 void loop() {
-    unsigned long now = millis();
+    ArduinoOTA.handle();
     
-    // Update data every 10 seconds
-    if (now - lastUpdate > 10000) {
-        fetchDataFromPi();
-        lastUpdate = now;
+    static unsigned long lastTime = 0;
+    static unsigned long lastFetch = 0;
+    static unsigned long lastDraw = 0;
+    static int msgIndex = 0;
+    
+    // Update time every second
+    if (millis() - lastTime > 1000) {
+        mins++;
+        if (mins >= 60) {
+            mins = 0;
+            hours++;
+            if (hours >= 24) hours = 0;
+        }
+        lastTime = millis();
         
-        // Redraw static elements
-        tft.fillScreen(COLOR_BG);
-        drawTopBar();
-        drawMainMetrics();
-        drawMiniChart();
-        drawStatusBar();
+        // Rotate status messages
+        const char* messages[] = {
+            "Waiting for signal...",
+            "Monitoring markets...",
+            "System ready...",
+            "Standby mode..."
+        };
+        botStatus = messages[msgIndex++ % 4];
     }
     
-    // Update ticker every 50ms
-    if (now - lastTickerScroll > 50) {
-        drawTicker();
-        lastTickerScroll = now;
+    // Fetch data every 30 seconds
+    if (millis() - lastFetch > 30000) {
+        fetchData();
+        lastFetch = millis();
     }
     
-    delay(10);
+    // Redraw every 2 seconds
+    if (millis() - lastDraw > 2000) {
+        draw();
+        lastDraw = millis();
+    }
+    
+    delay(100);
 }
-

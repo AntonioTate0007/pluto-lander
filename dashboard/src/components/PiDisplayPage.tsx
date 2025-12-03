@@ -147,7 +147,7 @@ export const PiDisplayPage: React.FC<PiDisplayProps> = ({ token, baseURL, onExit
     return () => clearInterval(interval)
   }, [token, baseURL])
 
-  // Auto-login for kiosk
+  // Auto-login for kiosk - silent background login, no reload
   useEffect(() => {
     if (!token) {
       const autoLogin = async () => {
@@ -163,13 +163,15 @@ export const PiDisplayPage: React.FC<PiDisplayProps> = ({ token, baseURL, onExit
           if (res.ok) {
             const data = await res.json()
             localStorage.setItem('pluto_token', data.access_token)
-            window.location.reload()
+            // Don't reload - just update token in parent via window event
+            window.dispatchEvent(new CustomEvent('pluto-login', { detail: data.access_token }))
           }
         } catch (e) {
-          console.error('Auto-login failed:', e)
+          console.error('Auto-login failed (continuing without auth):', e)
         }
       }
-      autoLogin()
+      // Try auto-login but don't block display
+      setTimeout(autoLogin, 500)
     }
   }, [token, baseURL])
 
@@ -215,16 +217,8 @@ export const PiDisplayPage: React.FC<PiDisplayProps> = ({ token, baseURL, onExit
   const hours = currentTime.getHours().toString().padStart(2, '0')
   const minutes = currentTime.getMinutes().toString().padStart(2, '0')
 
-  // Loading screen
-  if (!token) {
-    return (
-      <div className="braiins-loading">
-        <div className="loading-icon">🚀</div>
-        <div className="loading-text">PLUTO LANDER</div>
-        <div className="loading-sub">Initializing...</div>
-      </div>
-    )
-  }
+  // In kiosk mode, show display even without token (will use public APIs)
+  // No loading screen - just show the dashboard
 
   return (
     <div className="braiins-display" onClick={() => setShowMenu(true)}>
