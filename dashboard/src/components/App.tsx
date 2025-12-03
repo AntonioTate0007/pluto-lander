@@ -44,6 +44,19 @@ export const App: React.FC = () => {
     window.addEventListener('popstate', handlePopState)
     return () => window.removeEventListener('popstate', handlePopState)
   }, [])
+  
+  // Listen for login events from child components (PiDisplayPage auto-login)
+  useEffect(() => {
+    const handleLogin = (e: CustomEvent) => {
+      const newToken = e.detail
+      if (newToken) {
+        console.log('[App] Token updated from child component')
+        setToken(newToken)
+      }
+    }
+    window.addEventListener('pluto-login', handleLogin as EventListener)
+    return () => window.removeEventListener('pluto-login', handleLogin as EventListener)
+  }, [])
 
   useEffect(() => {
     if (token) {
