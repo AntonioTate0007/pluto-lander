@@ -87,15 +87,17 @@ export const App: React.FC = () => {
     setKioskMode(true)
   }
 
-  // Auto-login for kiosk mode - retry until success
+  // Auto-login for kiosk mode - retry until success (background, non-blocking)
   useEffect(() => {
     if (kioskMode && !token) {
       let attempts = 0
-      const maxAttempts = 10
+      const maxAttempts = 20
+      let cancelled = false
       
       const autoLogin = async () => {
+        if (cancelled) return
         attempts++
-        console.log(`Kiosk auto-login attempt ${attempts}...`)
+        console.log(`[Kiosk] Auto-login attempt ${attempts}/${maxAttempts}...`)
         try {
           const form = new URLSearchParams()
           form.append('username', 'admin')
@@ -103,31 +105,38 @@ export const App: React.FC = () => {
           form.append('grant_type', '')
           const res = await fetch(`${baseURL}/api/auth/login`, {
             method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: form,
           })
           if (res.ok) {
             const data = await res.json()
-            console.log('Kiosk auto-login successful!')
+            console.log('[Kiosk] ✅ Auto-login successful!')
             localStorage.setItem('pluto_token', data.access_token)
             setToken(data.access_token)
           } else {
-            console.error('Login failed:', res.status)
-            if (attempts < maxAttempts) {
-              setTimeout(autoLogin, 2000)
+            const errorText = await res.text()
+            console.warn(`[Kiosk] Login failed (${res.status}):`, errorText)
+            if (attempts < maxAttempts && !cancelled) {
+              setTimeout(autoLogin, 3000)
             }
           }
         } catch (e) {
-          console.error('Kiosk auto-login error:', e)
-          if (attempts < maxAttempts) {
-            setTimeout(autoLogin, 2000)
+          console.warn(`[Kiosk] Auto-login error (attempt ${attempts}):`, e)
+          if (attempts < maxAttempts && !cancelled) {
+            setTimeout(autoLogin, 3000)
           }
         }
       }
       
       // Start auto-login after a short delay
-      setTimeout(autoLogin, 1000)
+      const timer = setTimeout(autoLogin, 2000)
+      
+      return () => {
+        cancelled = true
+        clearTimeout(timer)
+      }
     }
-  }, [kioskMode])
+  }, [kioskMode, baseURL])
 
   // Kiosk mode - show Pi display WITHOUT requiring login
   if (kioskMode) {

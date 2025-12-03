@@ -88,9 +88,19 @@ export const PiDisplayPage: React.FC<PiDisplayProps> = ({ token, baseURL, onExit
     return () => clearInterval(interval)
   }, [])
 
-  // Fetch Alpaca data (stocks + account)
+  // Fetch Alpaca data (stocks + account) - only if token available
   useEffect(() => {
-    if (!token) return
+    if (!token) {
+      // No token - use mock/default values, display still works
+      setEquity(100000)
+      setDayPL(0)
+      setDayPLPercent(0)
+      setAaplPrice(178.50)
+      setAaplChange(1.2)
+      setSpxPrice(4567.89)
+      setSpxChange(-0.8)
+      return
+    }
     
     const fetchAlpaca = async () => {
       try {
@@ -147,10 +157,12 @@ export const PiDisplayPage: React.FC<PiDisplayProps> = ({ token, baseURL, onExit
     return () => clearInterval(interval)
   }, [token, baseURL])
 
-  // Auto-login for kiosk - silent background login, no reload
+  // Auto-login for kiosk - silent background login (non-blocking)
   useEffect(() => {
-    if (!token) {
+    if (!token && baseURL) {
+      let cancelled = false
       const autoLogin = async () => {
+        if (cancelled) return
         try {
           const form = new URLSearchParams()
           form.append('username', 'admin')
@@ -158,20 +170,28 @@ export const PiDisplayPage: React.FC<PiDisplayProps> = ({ token, baseURL, onExit
           form.append('grant_type', '')
           const res = await fetch(`${baseURL}/api/auth/login`, {
             method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: form,
           })
           if (res.ok) {
             const data = await res.json()
+            console.log('[PiDisplay] ✅ Background login successful')
             localStorage.setItem('pluto_token', data.access_token)
-            // Don't reload - just update token in parent via window event
+            // Trigger parent to update token
             window.dispatchEvent(new CustomEvent('pluto-login', { detail: data.access_token }))
+          } else {
+            console.warn('[PiDisplay] Background login failed (will continue without auth):', res.status)
           }
         } catch (e) {
-          console.error('Auto-login failed (continuing without auth):', e)
+          console.warn('[PiDisplay] Background login error (will continue without auth):', e)
         }
       }
-      // Try auto-login but don't block display
-      setTimeout(autoLogin, 500)
+      // Try auto-login but don't block display - delay to let page render first
+      const timer = setTimeout(autoLogin, 2000)
+      return () => {
+        cancelled = true
+        clearTimeout(timer)
+      }
     }
   }, [token, baseURL])
 
