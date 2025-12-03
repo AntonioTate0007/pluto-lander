@@ -24,13 +24,8 @@ static const char* BACKEND_WS_PATH = "/ws/telemetry";
 #define TFT_CLK  18
 #define TFT_BL   32
 
-// Display dimensions (portrait)
-#define TFT_WIDTH  240
-#define TFT_HEIGHT 320
-
-// Screen timing
-#define SCREEN1_DURATION_MS 8000  // BTC screen
-#define SCREEN2_DURATION_MS 8000 // Profit screen
-#define SCREENSAVER_DURATION_MS 15000
+// Display dimensions (landscape for CYD)
+#define TFT_WIDTH  320
+#define TFT_HEIGHT 240
 
 #endif

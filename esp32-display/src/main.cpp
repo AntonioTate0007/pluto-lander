@@ -1,7 +1,7 @@
 /**
- * PLUTO LAUNCHER ESP32 - AITRIP ESP32-2432S028R
- * 2.8" ILI9341 TFT Display
- * WebSocket connection to Pi backend
+ * PLUTO LAUNCHER ESP32 - ESP32-2432S028 (CYD)
+ * 2.8" ST7789V TFT Display
+ * Vertical 3-section layout: TIME | BLOCK HEIGHT | BOT STATUS
  */
 
 #include <Arduino.h>
@@ -9,313 +9,174 @@
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include <ArduinoOTA.h>
-#include <WebSocketsClient.h>
 #include <TFT_eSPI.h>
+#include <time.h>
 
-// Use TFT_eSPI instead of Adafruit (better for ESP32)
 TFT_eSPI tft = TFT_eSPI();
 
 // Configuration
 #include "config.h"
 
 // Colors
-#define BG_DARK     tft.color565(5, 10, 25)   // Deep navy
-#define CARD        tft.color565(20, 25, 35)
-#define BTC_ORANGE  tft.color565(247, 147, 26) // #f7931a
-#define GREEN       tft.color565(34, 197, 94)
-#define RED         tft.color565(239, 68, 68)
+#define BG_BLACK    0x0000
+#define PANEL       tft.color565(20, 20, 20)  // Dark gray panel
 #define WHITE       0xFFFF
 #define GRAY        tft.color565(140, 140, 140)
+#define GREEN       tft.color565(34, 197, 94)
+#define RED         tft.color565(239, 68, 68)
+#define GOLD        tft.color565(255, 193, 7)
 
-// Data from WebSocket
-struct TelemetryData {
-    float btc_price = 0;
-    float btc_change_24h = 0;
-    float profit_usd = 0;
-    float profit_today = 0;
-    String mode = "standby";
-    float sparkline[20] = {0};
-    int sparkline_count = 0;
-    unsigned long last_update = 0;
-    bool connected = false;
-} telemetry;
+// Data
+struct DisplayData {
+    int blockHeight = 890518;
+    float blockChange = 5.3;
+    String botStatus = "Waiting for signal...";
+    bool botReady = true;
+    unsigned long lastUpdate = 0;
+} data;
 
-// State machine
-enum DisplayState {
-    STATE_SCREEN1_BTC,
-    STATE_SCREEN2_PROFIT,
-    STATE_SCREENSAVER,
-    STATE_ERROR
-};
+// Time
+time_t now;
+struct tm timeinfo;
 
-DisplayState currentState = STATE_SCREEN1_BTC;
-unsigned long stateStartTime = 0;
-unsigned long lastScreenSwitch = 0;
-
-// WebSocket client
-WebSocketsClient webSocket;
-
-// Backlight PWM
-const int pwmChannel = 0;
-const int pwmFreq = 5000;
-const int pwmResolution = 8;
-
-void setBacklight(int brightness) {
-    ledcWrite(pwmChannel, brightness);
-}
-
-void drawBtcScreen() {
-    tft.fillScreen(BG_DARK);
-    
-    // Card background
-    tft.fillRoundRect(10, 20, 220, 140, 8, CARD);
+void drawTimePanel() {
+    // Panel background
+    tft.fillRoundRect(8, 8, 224, 90, 10, PANEL);
     
     // Label
-    tft.setTextColor(GRAY, CARD);
-    tft.setTextDatum(TC_DATUM);
-    tft.drawString("BTC / USD", 120, 30, 2);
-    
-    // Big price
-    char priceStr[20];
-    sprintf(priceStr, "%.2f", telemetry.btc_price);
-    tft.setTextColor(WHITE, CARD);
-    tft.drawString(priceStr, 120, 70, 4);
-    
-    // 24h change
-    uint16_t changeColor = telemetry.btc_change_24h >= 0 ? GREEN : RED;
-    char changeStr[15];
-    sprintf(changeStr, "%s%.2f%% (24h)", 
-            telemetry.btc_change_24h >= 0 ? "+" : "", 
-            telemetry.btc_change_24h);
-    tft.setTextColor(changeColor, CARD);
-    tft.drawString(changeStr, 120, 110, 2);
-    
-    // Sparkline
-    if (telemetry.sparkline_count > 1) {
-        int chartX = 20;
-        int chartY = 140;
-        int chartW = 200;
-        int chartH = 30;
-        
-        float minVal = telemetry.sparkline[0];
-        float maxVal = telemetry.sparkline[0];
-        for (int i = 0; i < telemetry.sparkline_count; i++) {
-            if (telemetry.sparkline[i] < minVal) minVal = telemetry.sparkline[i];
-            if (telemetry.sparkline[i] > maxVal) maxVal = telemetry.sparkline[i];
-        }
-        float range = maxVal - minVal;
-        if (range < 1) range = 1;
-        
-        int prevX = -1, prevY = -1;
-        for (int i = 0; i < telemetry.sparkline_count; i++) {
-            int x = chartX + (i * chartW / telemetry.sparkline_count);
-            int y = chartY + chartH - ((telemetry.sparkline[i] - minVal) / range * chartH);
-            if (prevX >= 0) {
-                tft.drawLine(prevX, prevY, x, y, BTC_ORANGE);
-            }
-            prevX = x;
-            prevY = y;
-        }
-    }
-    
-    // Status bar
-    tft.fillRect(10, 180, 220, 30, CARD);
-    tft.setTextColor(WHITE, CARD);
+    tft.setTextColor(GRAY, PANEL);
     tft.setTextDatum(TL_DATUM);
-    tft.drawString("Mode: ", 20, 188, 2);
+    tft.drawString("Local Time", 20, 20, 2);
     
-    uint16_t modeColor = GRAY;
-    if (telemetry.mode == "live") modeColor = GREEN;
-    else if (telemetry.mode == "error") modeColor = RED;
+    // Get current time
+    time(&now);
+    localtime_r(&now, &timeinfo);
     
-    tft.setTextColor(modeColor, CARD);
-    tft.drawString(telemetry.mode.toUpperCase(), 70, 188, 2);
-    
-    // Status indicator
-    tft.fillCircle(200, 195, 6, modeColor);
+    // Huge time display
+    char timeStr[8];
+    sprintf(timeStr, "%02d:%02d", timeinfo.tm_hour, timeinfo.tm_min);
+    tft.setTextColor(WHITE, PANEL);
+    tft.setTextDatum(TC_DATUM);
+    tft.drawString(timeStr, 120, 50, 7);
 }
 
-void drawProfitScreen() {
-    tft.fillScreen(BG_DARK);
+void drawBlockHeightPanel() {
+    // Panel background
+    tft.fillRoundRect(8, 106, 224, 120, 10, PANEL);
     
-    // Card background
-    tft.fillRoundRect(10, 20, 220, 180, 8, CARD);
+    // Header with icon
+    tft.fillCircle(20, 120, 6, GOLD);
+    tft.setTextColor(GRAY, PANEL);
+    tft.setTextDatum(TL_DATUM);
+    tft.drawString("Block Height", 32, 115, 2);
     
-    // Label
-    tft.setTextColor(GRAY, CARD);
+    // Percentage on right
+    char pctStr[12];
+    sprintf(pctStr, "%.1f%%", data.blockChange);
+    tft.setTextDatum(TR_DATUM);
+    tft.setTextColor(GREEN, PANEL);
+    tft.drawString(pctStr, 228, 115, 2);
+    
+    // Massive block number
+    tft.setTextColor(WHITE, PANEL);
     tft.setTextDatum(TC_DATUM);
-    tft.drawString("Total Profit", 120, 30, 2);
+    char blockStr[20];
+    sprintf(blockStr, "%d", data.blockHeight);
+    tft.drawString(blockStr, 120, 155, 6);
     
-    // Big profit number
-    char profitStr[20];
-    sprintf(profitStr, "$%.2f", telemetry.profit_usd);
-    tft.setTextColor(WHITE, CARD);
-    tft.drawString(profitStr, 120, 80, 4);
-    
-    // Today's profit
-    tft.setTextColor(GRAY, CARD);
-    tft.drawString("Today:", 120, 130, 2);
-    
-    uint16_t todayColor = telemetry.profit_today >= 0 ? GREEN : RED;
-    char todayStr[20];
-    sprintf(todayStr, "%s$%.2f", 
-            telemetry.profit_today >= 0 ? "+" : "", 
-            telemetry.profit_today);
-    tft.setTextColor(todayColor, CARD);
-    tft.drawString(todayStr, 120, 150, 2);
-    
-    // Mini bar chart (last 5 days - mock for now)
-    int barW = 30;
-    int barH = 40;
-    int startX = 30;
-    int baseY = 180;
-    for (int i = 0; i < 5; i++) {
-        int h = random(10, barH);
-        uint16_t barColor = (i % 2 == 0) ? GREEN : RED;
-        tft.fillRect(startX + i * (barW + 10), baseY - h, barW, h, barColor);
+    // Green sparkline graph
+    int y0 = 200;
+    int prevY = y0;
+    for(int i = 0; i < 200; i += 4) {
+        int y = y0 + random(-8, 8);
+        tft.drawLine(20 + i - 4, prevY, 20 + i, y, GREEN);
+        prevY = y;
     }
-    
-    // Connection status
-    tft.fillRect(10, 220, 220, 30, CARD);
-    tft.setTextColor(telemetry.connected ? GREEN : RED, CARD);
-    tft.setTextDatum(TC_DATUM);
-    tft.drawString(telemetry.connected ? "Alpaca Connected" : "Disconnected", 120, 230, 2);
 }
 
-void drawScreensaverMining() {
-    static float angle = 0;
-    static int hexY[5] = {0};
-    static bool initialized = false;
+void drawBotStatusPanel() {
+    // Panel background
+    tft.fillRoundRect(8, 234, 224, 86, 10, PANEL);
     
-    if (!initialized) {
-        for (int i = 0; i < 5; i++) {
-            hexY[i] = random(-50, 0);
-        }
-        initialized = true;
-    }
+    // Bot Ready status
+    tft.setTextColor(GREEN, PANEL);
+    tft.setTextDatum(TC_DATUM);
+    tft.drawString("Bot Ready", 120, 250, 2);
     
-    tft.fillScreen(BG_DARK);
+    // Status message
+    tft.setTextColor(GRAY, PANEL);
+    tft.drawString(data.botStatus, 120, 280, 2);
     
-    // Rotating Bitcoin icon (simple circle with B)
-    int centerX = 120;
-    int centerY = 100;
-    int radius = 40;
+    // Status indicator bar at bottom
+    tft.fillRect(60, 310, 120, 4, GRAY);
     
-    angle += 0.05;
-    tft.drawCircle(centerX, centerY, radius, BTC_ORANGE);
-    tft.setTextColor(BTC_ORANGE, BG_DARK);
-    tft.setTextDatum(MC_DATUM);
-    tft.drawString("B", centerX, centerY, 4);
-    
-    // Falling hexagons
-    for (int i = 0; i < 5; i++) {
-        hexY[i] += 2;
-        if (hexY[i] > 320) {
-            hexY[i] = -20;
-        }
-        
-        int x = 30 + i * 45;
-        // Simple hexagon (6-sided polygon)
-        int size = 8;
-        for (int j = 0; j < 6; j++) {
-            float a = (j * PI / 3) + angle;
-            int x1 = x + cos(a) * size;
-            int y1 = hexY[i] + sin(a) * size;
-            float a2 = ((j + 1) * PI / 3) + angle;
-            int x2 = x + cos(a2) * size;
-            int y2 = hexY[i] + sin(a2) * size;
-            tft.drawLine(x1, y1, x2, y2, GRAY);
-        }
-    }
-    
-    // Fake hashrate text
-    tft.setTextColor(GRAY, BG_DARK);
+    // Footer
+    tft.setTextColor(GRAY, BG_BLACK);
     tft.setTextDatum(BC_DATUM);
-    char hashStr[20];
-    sprintf(hashStr, "Hashrate: %d TH/s", random(100, 200));
-    tft.drawString(hashStr, 120, 310, 1);
+    tft.drawString("PLUTO LAUNCHER", 120, 468, 2);
 }
 
-void drawErrorScreen() {
-    tft.fillScreen(BG_DARK);
-    tft.setTextColor(RED, BG_DARK);
-    tft.setTextDatum(MC_DATUM);
-    tft.drawString("BACKEND", 120, 120, 4);
-    tft.drawString("OFFLINE", 120, 160, 4);
-    tft.drawString("RETRYING...", 120, 200, 2);
+void drawMainDisplay() {
+    tft.fillScreen(BG_BLACK);
+    drawTimePanel();
+    drawBlockHeightPanel();
+    drawBotStatusPanel();
+}
+
+void fetchBlockHeight() {
+    if (WiFi.status() != WL_CONNECTED) return;
     
-    // Flashing status bar
-    static bool flash = false;
-    flash = !flash;
-    if (flash) {
-        tft.fillRect(10, 280, 220, 20, RED);
+    HTTPClient http;
+    http.begin("https://mempool.space/api/blocks/tip/height");
+    http.setTimeout(5000);
+    if (http.GET() == 200) {
+        int newHeight = http.getString().toInt();
+        if (newHeight > 0) {
+            // Calculate change
+            if (data.blockHeight > 0) {
+                data.blockChange = ((float)(newHeight - data.blockHeight) / data.blockHeight) * 100.0;
+            }
+            data.blockHeight = newHeight;
+            data.lastUpdate = millis();
+        }
     }
+    http.end();
 }
 
-void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
-    switch(type) {
-        case WStype_DISCONNECTED:
-            Serial.println("WebSocket Disconnected");
-            telemetry.connected = false;
-            currentState = STATE_ERROR;
-            break;
-            
-        case WStype_CONNECTED:
-            Serial.println("WebSocket Connected");
-            telemetry.connected = true;
-            break;
-            
-        case WStype_TEXT:
-            {
-                JsonDocument doc;
-                deserializeJson(doc, payload);
-                
-                if (doc["type"] == "telemetry") {
-                    telemetry.btc_price = doc["btc_price"] | 0.0;
-                    telemetry.btc_change_24h = doc["btc_change_24h"] | 0.0;
-                    telemetry.profit_usd = doc["profit_usd"] | 0.0;
-                    telemetry.profit_today = doc["profit_today"] | 0.0;
-                    telemetry.mode = doc["mode"] | "standby";
-                    
-                    if (doc.containsKey("sparkline")) {
-                        JsonArray arr = doc["sparkline"];
-                        telemetry.sparkline_count = min(arr.size(), 20);
-                        for (int i = 0; i < telemetry.sparkline_count; i++) {
-                            telemetry.sparkline[i] = arr[i] | 0.0;
-                        }
-                    }
-                    
-                    telemetry.last_update = millis();
-                }
-            }
-            break;
-            
-        default:
-            break;
-    }
+void setupOTA() {
+    ArduinoOTA.setHostname("pluto-esp32");
+    ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+        int pct = (progress * 100) / total;
+        tft.fillRect(60, 200, 120, 20, BG_BLACK);
+        tft.setTextColor(WHITE, BG_BLACK);
+        tft.setTextDatum(TC_DATUM);
+        char pctStr[10];
+        sprintf(pctStr, "%d%%", pct);
+        tft.drawString(pctStr, 120, 210, 2);
+    });
+    ArduinoOTA.begin();
 }
 
 void setup() {
     Serial.begin(115200);
     delay(300);
     
-    // Backlight PWM setup
-    ledcSetup(pwmChannel, pwmFreq, pwmResolution);
-    ledcAttachPin(TFT_BL, pwmChannel);
-    setBacklight(255); // Full brightness
+    // Backlight
+    pinMode(TFT_BL, OUTPUT);
+    digitalWrite(TFT_BL, HIGH);
     
     // Initialize display
     tft.init();
-    tft.setRotation(0); // Portrait
-    tft.fillScreen(BG_DARK);
+    tft.setRotation(3); // Landscape (320x240)
+    tft.fillScreen(BG_BLACK);
     
     // Boot splash
-    tft.setTextColor(BTC_ORANGE, BG_DARK);
+    tft.setTextColor(GOLD, BG_BLACK);
     tft.setTextDatum(MC_DATUM);
-    tft.drawString("PLUTO", 120, 120, 4);
-    tft.drawString("LAUNCHER", 120, 160, 4);
-    tft.setTextColor(GRAY, BG_DARK);
-    tft.drawString("Connecting...", 120, 200, 2);
+    tft.drawString("PLUTO", 160, 100, 4);
+    tft.drawString("LAUNCHER", 160, 140, 4);
+    tft.setTextColor(GRAY, BG_BLACK);
+    tft.drawString("Connecting...", 160, 180, 2);
     
     // Connect WiFi
     WiFi.begin(WIFI_SSID, WIFI_PASS);
@@ -326,73 +187,63 @@ void setup() {
     }
     
     if (WiFi.status() == WL_CONNECTED) {
-        tft.setTextColor(GREEN, BG_DARK);
-        tft.drawString("WiFi Connected!", 120, 230, 2);
+        tft.setTextColor(GREEN, BG_BLACK);
+        tft.drawString("WiFi Connected!", 160, 200, 2);
         
-        // Setup WebSocket
-        webSocket.begin(BACKEND_HOST, BACKEND_PORT, BACKEND_WS_PATH, "http");
-        webSocket.onEvent(webSocketEvent);
-        webSocket.setReconnectInterval(5000);
-        webSocket.enableHeartbeat(15000, 3000, 2);
+        // Configure time
+        configTime(0, 0, "pool.ntp.org", "time.nist.gov");
+        delay(2000);
         
         // Setup OTA
-        ArduinoOTA.setHostname("pluto-esp32");
-        ArduinoOTA.begin();
+        setupOTA();
+        
+        // Fetch initial data
+        fetchBlockHeight();
         
         delay(1000);
     } else {
-        tft.setTextColor(RED, BG_DARK);
-        tft.drawString("WiFi Failed", 120, 230, 2);
-        currentState = STATE_ERROR;
+        tft.setTextColor(RED, BG_BLACK);
+        tft.drawString("WiFi Failed", 160, 200, 2);
         delay(2000);
     }
     
-    stateStartTime = millis();
+    // Draw main display
+    drawMainDisplay();
 }
 
 void loop() {
     ArduinoOTA.handle();
-    webSocket.loop();
     
-    unsigned long now = millis();
-    
-    // State machine logic
-    if (telemetry.mode == "idle" && currentState != STATE_SCREENSAVER) {
-        currentState = STATE_SCREENSAVER;
-        stateStartTime = now;
-    } else if (telemetry.mode != "idle" && currentState == STATE_SCREENSAVER) {
-        currentState = STATE_SCREEN1_BTC;
-        stateStartTime = now;
+    // Update time every second
+    static unsigned long lastTimeUpdate = 0;
+    if (millis() - lastTimeUpdate > 1000) {
+        drawTimePanel();
+        lastTimeUpdate = millis();
     }
     
-    // Screen rotation
-    if (currentState == STATE_SCREEN1_BTC && (now - stateStartTime) > SCREEN1_DURATION_MS) {
-        currentState = STATE_SCREEN2_PROFIT;
-        stateStartTime = now;
-    } else if (currentState == STATE_SCREEN2_PROFIT && (now - stateStartTime) > SCREEN2_DURATION_MS) {
-        currentState = STATE_SCREEN1_BTC;
-        stateStartTime = now;
+    // Update block height every 60 seconds
+    static unsigned long lastBlockUpdate = 0;
+    if (millis() - lastBlockUpdate > 60000) {
+        fetchBlockHeight();
+        drawBlockHeightPanel();
+        lastBlockUpdate = millis();
     }
     
-    // Redraw current screen
-    static unsigned long lastDraw = 0;
-    if (now - lastDraw > 1000) { // Update every second
-        switch (currentState) {
-            case STATE_SCREEN1_BTC:
-                drawBtcScreen();
-                break;
-            case STATE_SCREEN2_PROFIT:
-                drawProfitScreen();
-                break;
-            case STATE_SCREENSAVER:
-                drawScreensaverMining();
-                break;
-            case STATE_ERROR:
-                drawErrorScreen();
-                break;
-        }
-        lastDraw = now;
+    // Update bot status (mock for now)
+    static unsigned long lastStatusUpdate = 0;
+    if (millis() - lastStatusUpdate > 5000) {
+        // Rotate status messages
+        static int statusIndex = 0;
+        const char* statuses[] = {
+            "Waiting for signal...",
+            "Monitoring markets...",
+            "Ready to trade..."
+        };
+        data.botStatus = statuses[statusIndex % 3];
+        statusIndex++;
+        drawBotStatusPanel();
+        lastStatusUpdate = millis();
     }
     
-    delay(10);
+    delay(100);
 }
