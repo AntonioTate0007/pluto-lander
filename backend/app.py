@@ -12,6 +12,7 @@ from typing import List, Optional
 from pydantic import BaseModel
 from pathlib import Path
 import asyncio
+import httpx
 
 from .auth import get_current_user, create_access_token, authenticate_user
 from .models import UserPublic, SettingsUpdate, SettingsPublic, TradeSignal, TelemetryMessage
@@ -48,6 +49,10 @@ async def startup():
         print(f"[Pluto] 🖥️  Dashboard serving from {DASHBOARD_DIR}")
     else:
         print(f"[Pluto] ⚠️  Dashboard not built yet. Run 'npm run build' in dashboard/")
+    
+    # Start ESP32 telemetry broadcast task
+    asyncio.create_task(broadcast_esp32_telemetry())
+    print("[Pluto] 📊 ESP32 telemetry broadcast started")
 
 
 # ============== AUTH ROUTES ==============
@@ -211,7 +216,7 @@ async def broadcast_telemetry(msg: TelemetryMessage):
 
 @app.websocket("/ws/telemetry")
 async def telemetry_ws(ws: WebSocket):
-    """WebSocket endpoint for real-time telemetry"""
+    """WebSocket endpoint for real-time telemetry (ESP32 and other clients)"""
     await ws.accept()
     telemetry_clients.append(ws)
     print(f"[Pluto] 📡 WebSocket client connected. Total: {len(telemetry_clients)}")
@@ -226,6 +231,54 @@ async def telemetry_ws(ws: WebSocket):
         if ws in telemetry_clients:
             telemetry_clients.remove(ws)
         print(f"[Pluto] 📡 WebSocket client disconnected. Total: {len(telemetry_clients)}")
+
+
+async def broadcast_esp32_telemetry():
+    """Periodically broadcast telemetry data for ESP32 display"""
+    import asyncio
+    while True:
+        try:
+            if telemetry_clients:
+                # Fetch BTC price
+                try:
+                    btc_resp = await httpx.AsyncClient().get("https://api.coinbase.com/v2/prices/BTC-USD/spot", timeout=5.0)
+                    btc_data = btc_resp.json()
+                    btc_price = float(btc_data["data"]["amount"])
+                except:
+                    btc_price = 0.0
+                
+                # Get account data if available
+                try:
+                    account = await alpaca_client.get_account()
+                    profit_usd = float(account.get("portfolio_value", 0)) - 100000  # Mock profit
+                    profit_today = float(account.get("daytrading_buying_power", 0)) * 0.01  # Mock today
+                except:
+                    profit_usd = 0.0
+                    profit_today = 0.0
+                
+                # Mock sparkline (last 20 prices)
+                sparkline = [btc_price + (i * 10 - 100) for i in range(20)]
+                
+                # Determine mode
+                mode = "standby"
+                if alpaca_client.is_connected():
+                    mode = "live"
+                
+                telemetry_msg = {
+                    "type": "telemetry",
+                    "btc_price": btc_price,
+                    "btc_change_24h": 2.5,  # Mock for now
+                    "profit_usd": profit_usd,
+                    "profit_today": profit_today,
+                    "mode": mode,
+                    "sparkline": sparkline
+                }
+                
+                await broadcast_telemetry(TelemetryMessage(**telemetry_msg))
+        except Exception as e:
+            print(f"[Pluto] Error broadcasting ESP32 telemetry: {e}")
+        
+        await asyncio.sleep(5)  # Update every 5 seconds
 
 
 # ============== HEALTH CHECK ==============
