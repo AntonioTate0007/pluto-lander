@@ -40,10 +40,10 @@ time_t now;
 struct tm timeinfo;
 
 void drawTimePanel() {
-    // Panel background
+    // Panel background (top section)
     tft.fillRoundRect(8, 8, 224, 90, 10, PANEL);
     
-    // Label
+    // Label "Local Time"
     tft.setTextColor(GRAY, PANEL);
     tft.setTextDatum(TL_DATUM);
     tft.drawString("Local Time", 20, 20, 2);
@@ -52,68 +52,66 @@ void drawTimePanel() {
     time(&now);
     localtime_r(&now, &timeinfo);
     
-    // Huge time display
+    // Huge time display (12:43 style)
     char timeStr[8];
     sprintf(timeStr, "%02d:%02d", timeinfo.tm_hour, timeinfo.tm_min);
     tft.setTextColor(WHITE, PANEL);
     tft.setTextDatum(TC_DATUM);
-    tft.drawString(timeStr, 120, 50, 7);
+    tft.drawString(timeStr, 120, 55, 7); // Large font size 7
 }
 
 void drawBlockHeightPanel() {
-    // Panel background
+    // Panel background (middle section)
     tft.fillRoundRect(8, 106, 224, 120, 10, PANEL);
     
-    // Header with icon
-    tft.fillCircle(20, 120, 6, GOLD);
+    // Header "Block Height"
     tft.setTextColor(GRAY, PANEL);
     tft.setTextDatum(TL_DATUM);
-    tft.drawString("Block Height", 32, 115, 2);
+    tft.drawString("Block Height", 20, 118, 2);
     
-    // Percentage on right
+    // Percentage on right (5.3%)
     char pctStr[12];
     sprintf(pctStr, "%.1f%%", data.blockChange);
     tft.setTextDatum(TR_DATUM);
     tft.setTextColor(GREEN, PANEL);
-    tft.drawString(pctStr, 228, 115, 2);
+    tft.drawString(pctStr, 228, 118, 2);
     
-    // Massive block number
+    // Massive block number (890,518)
     tft.setTextColor(WHITE, PANEL);
     tft.setTextDatum(TC_DATUM);
     char blockStr[20];
     sprintf(blockStr, "%d", data.blockHeight);
-    tft.drawString(blockStr, 120, 155, 6);
+    tft.drawString(blockStr, 120, 155, 6); // Large font size 6
     
-    // Green sparkline graph
+    // Green sparkline graph below number
     int y0 = 200;
     int prevY = y0;
-    for(int i = 0; i < 200; i += 4) {
-        int y = y0 + random(-8, 8);
-        tft.drawLine(20 + i - 4, prevY, 20 + i, y, GREEN);
+    int graphWidth = 200;
+    int graphHeight = 20;
+    for(int i = 0; i < graphWidth; i += 4) {
+        int y = y0 + random(-6, 6);
+        if (i > 0) {
+            tft.drawLine(20 + i - 4, prevY, 20 + i, y, GREEN);
+        }
         prevY = y;
     }
 }
 
 void drawBotStatusPanel() {
-    // Panel background
+    // Panel background (bottom section)
     tft.fillRoundRect(8, 234, 224, 86, 10, PANEL);
     
-    // Bot Ready status
-    tft.setTextColor(GREEN, PANEL);
+    // "Bot Ready" status (yellow/gold color)
+    tft.setTextColor(GOLD, PANEL);
     tft.setTextDatum(TC_DATUM);
     tft.drawString("Bot Ready", 120, 250, 2);
     
-    // Status message
-    tft.setTextColor(GRAY, PANEL);
+    // Status message "Waiting for signal..."
+    tft.setTextColor(WHITE, PANEL);
     tft.drawString(data.botStatus, 120, 280, 2);
     
-    // Status indicator bar at bottom
+    // Status indicator bar at bottom (gray)
     tft.fillRect(60, 310, 120, 4, GRAY);
-    
-    // Footer
-    tft.setTextColor(GRAY, BG_BLACK);
-    tft.setTextDatum(BC_DATUM);
-    tft.drawString("PLUTO LAUNCHER", 120, 468, 2);
 }
 
 void drawMainDisplay() {
@@ -167,7 +165,7 @@ void setup() {
     
     // Initialize display
     tft.init();
-    tft.setRotation(3); // Landscape (320x240)
+    tft.setRotation(0); // Portrait (240x320) - vertical layout
     tft.fillScreen(BG_BLACK);
     
     // Boot splash
