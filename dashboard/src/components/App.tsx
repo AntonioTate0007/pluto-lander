@@ -129,29 +129,11 @@ export const App: React.FC = () => {
     }
   }, [kioskMode])
 
-  // Kiosk mode - show Pi display
+  // Kiosk mode - show Pi display WITHOUT requiring login
   if (kioskMode) {
-    if (!token) {
-      // Show loading while auto-login happens
-      return (
-        <div style={{ 
-          background: '#0f1419', 
-          minHeight: '100vh', 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center',
-          flexDirection: 'column',
-          gap: '20px'
-        }}>
-          <div style={{ fontSize: '48px' }}>🚀</div>
-          <div style={{ color: '#ffa726', fontSize: '24px', fontWeight: 300 }}>Pluto Lander</div>
-          <div style={{ color: '#888', fontSize: '14px' }}>Initializing kiosk mode...</div>
-        </div>
-      )
-    }
     return (
       <PiDisplayPage 
-        token={token} 
+        token={token || 'kiosk-mode'} 
         baseURL={baseURL} 
         onExitKiosk={exitKioskMode}
       />
