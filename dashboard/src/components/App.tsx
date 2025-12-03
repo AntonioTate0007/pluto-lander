@@ -87,10 +87,15 @@ export const App: React.FC = () => {
     setKioskMode(true)
   }
 
-  // Auto-login for kiosk mode
+  // Auto-login for kiosk mode - retry until success
   useEffect(() => {
     if (kioskMode && !token) {
+      let attempts = 0
+      const maxAttempts = 10
+      
       const autoLogin = async () => {
+        attempts++
+        console.log(`Kiosk auto-login attempt ${attempts}...`)
         try {
           const form = new URLSearchParams()
           form.append('username', 'admin')
@@ -102,15 +107,27 @@ export const App: React.FC = () => {
           })
           if (res.ok) {
             const data = await res.json()
+            console.log('Kiosk auto-login successful!')
+            localStorage.setItem('pluto_token', data.access_token)
             setToken(data.access_token)
+          } else {
+            console.error('Login failed:', res.status)
+            if (attempts < maxAttempts) {
+              setTimeout(autoLogin, 2000)
+            }
           }
         } catch (e) {
-          console.error('Kiosk auto-login failed:', e)
+          console.error('Kiosk auto-login error:', e)
+          if (attempts < maxAttempts) {
+            setTimeout(autoLogin, 2000)
+          }
         }
       }
-      autoLogin()
+      
+      // Start auto-login after a short delay
+      setTimeout(autoLogin, 1000)
     }
-  }, [kioskMode, token, baseURL])
+  }, [kioskMode])
 
   // Kiosk mode - show Pi display
   if (kioskMode) {
