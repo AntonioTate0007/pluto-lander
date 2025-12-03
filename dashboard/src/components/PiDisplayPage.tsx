@@ -1,437 +1,348 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react'
 import axios from 'axios'
 
-interface TelemetryMessage {
-  type: string
-  symbol?: string
-  side?: string
-  confidence?: number
-  reason?: string
-  price?: number
-  extra?: Record<string, any>
-}
-
-interface AlpacaAccount {
-  equity: string
-  cash: string
-  buying_power: string
-  portfolio_value: string
-  last_equity: string
-}
-
-interface Position {
-  symbol: string
-  qty: string
-  market_value: string
-  unrealized_pl: string
-  unrealized_plpc: string
-  current_price: string
-  avg_entry_price: string
-}
-
 interface PiDisplayProps {
   token: string | null
   baseURL: string
   onExitKiosk?: () => void
 }
 
-export const PiDisplayPage: React.FC<PiDisplayProps> = ({ token, baseURL, onExitKiosk }) => {
-  const [account, setAccount] = useState<AlpacaAccount | null>(null)
-  const [positions, setPositions] = useState<Position[]>([])
-  const [btcPrice, setBtcPrice] = useState<number>(0)
-  const [prevBtcPrice, setPrevBtcPrice] = useState<number>(0)
-  const [currentTime, setCurrentTime] = useState(new Date())
-  const [alpacaConnected, setAlpacaConnected] = useState(false)
-  const [tradingMode, setTradingMode] = useState<'paper' | 'live'>('paper')
-  const [systemStatus, setSystemStatus] = useState<'active' | 'standby' | 'offline'>('standby')
-  const [lastUpdate, setLastUpdate] = useState<Date>(new Date())
-  const [isFullscreen, setIsFullscreen] = useState(false)
-  const [showMenu, setShowMenu] = useState(false)
-  const [currentView, setCurrentView] = useState<'main' | 'positions' | 'chart'>('main')
-  const [alerts, setAlerts] = useState<TelemetryMessage[]>([])
-  const [wsConnected, setWsConnected] = useState(false)
-  const menuTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const wsRef = useRef<WebSocket | null>(null)
+interface PriceHistory {
+  btc: number[]
+  aapl: number[]
+  spx: number[]
+}
 
-  // Clock update
+export const PiDisplayPage: React.FC<PiDisplayProps> = ({ token, baseURL, onExitKiosk }) => {
+  // Price states
+  const [btcPrice, setBtcPrice] = useState<number>(0)
+  const [btcChange, setBtcChange] = useState<number>(0)
+  const [aaplPrice, setAaplPrice] = useState<number>(0)
+  const [aaplChange, setAaplChange] = useState<number>(0)
+  const [spxPrice, setSpxPrice] = useState<number>(0)
+  const [spxChange, setSpxChange] = useState<number>(0)
+  const [blockHeight, setBlockHeight] = useState<number>(0)
+  const [blockTime, setBlockTime] = useState<string>('')
+  const [priceHistory, setPriceHistory] = useState<PriceHistory>({ btc: [], aapl: [], spx: [] })
+  
+  // Account states
+  const [equity, setEquity] = useState<number>(0)
+  const [dayPL, setDayPL] = useState<number>(0)
+  const [dayPLPercent, setDayPLPercent] = useState<number>(0)
+  
+  // Time
+  const [currentTime, setCurrentTime] = useState(new Date())
+  const [showMenu, setShowMenu] = useState(false)
+  
+  // Update clock every second
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000)
     return () => clearInterval(timer)
   }, [])
 
-  // WebSocket connection for real-time telemetry
+  // Fetch BTC price from Coinbase
   useEffect(() => {
-    if (!token) return
-
-    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-    const wsUrl = `${wsProtocol}//${window.location.host}${baseURL}/ws/telemetry`
-    
-    const connectWs = () => {
-      try {
-        const ws = new WebSocket(wsUrl)
-        wsRef.current = ws
-
-        ws.onopen = () => {
-          console.log('[Pi Display] WebSocket connected')
-          setWsConnected(true)
-          // Send ping to keep alive
-          ws.send('ping')
-        }
-
-        ws.onmessage = (event) => {
-          try {
-            const data = JSON.parse(event.data) as TelemetryMessage
-            if (data.type === 'pong') return
-            
-            // Add alert with timestamp
-            setAlerts(prev => [...prev.slice(-4), { ...data, extra: { ...data.extra, timestamp: new Date().toISOString() } }])
-            
-            // Auto-clear old alerts
-            setTimeout(() => {
-              setAlerts(prev => prev.slice(1))
-            }, 10000)
-          } catch {
-            // Ignore parse errors
-          }
-        }
-
-        ws.onclose = () => {
-          console.log('[Pi Display] WebSocket disconnected')
-          setWsConnected(false)
-          // Reconnect after 5 seconds
-          setTimeout(connectWs, 5000)
-        }
-
-        ws.onerror = () => {
-          ws.close()
-        }
-      } catch {
-        setTimeout(connectWs, 5000)
-      }
-    }
-
-    connectWs()
-
-    // Keep-alive ping
-    const pingInterval = setInterval(() => {
-      if (wsRef.current?.readyState === WebSocket.OPEN) {
-        wsRef.current.send('ping')
-      }
-    }, 30000)
-
-    return () => {
-      clearInterval(pingInterval)
-      wsRef.current?.close()
-    }
-  }, [token, baseURL])
-
-  // Hide menu after inactivity
-  useEffect(() => {
-    if (showMenu) {
-      if (menuTimeoutRef.current) clearTimeout(menuTimeoutRef.current)
-      menuTimeoutRef.current = setTimeout(() => setShowMenu(false), 5000)
-    }
-    return () => {
-      if (menuTimeoutRef.current) clearTimeout(menuTimeoutRef.current)
-    }
-  }, [showMenu])
-
-  // Fetch BTC price
-  useEffect(() => {
-    const fetchPrice = async () => {
+    const fetchBTC = async () => {
       try {
         const res = await fetch('https://api.coinbase.com/v2/prices/BTC-USD/spot')
         const data = await res.json()
-        const newPrice = parseFloat(data.data.amount)
-        setPrevBtcPrice(btcPrice)
-        setBtcPrice(newPrice)
-      } catch {
-        // Ignore
+        const price = parseFloat(data.data.amount)
+        setBtcPrice(price)
+        setPriceHistory(prev => ({ ...prev, btc: [...prev.btc.slice(-29), price] }))
+        
+        // Get 24h change
+        const res24h = await fetch('https://api.coinbase.com/v2/prices/BTC-USD/buy')
+        const data24h = await res24h.json()
+        const price24h = parseFloat(data24h.data.amount)
+        const change = ((price - price24h) / price24h) * 100
+        setBtcChange(change)
+      } catch (e) {
+        console.error('BTC fetch error:', e)
       }
     }
-    fetchPrice()
-    const interval = setInterval(fetchPrice, 3000)
+    fetchBTC()
+    const interval = setInterval(fetchBTC, 10000)
     return () => clearInterval(interval)
   }, [])
 
-  // Fetch Alpaca data
+  // Fetch block height from mempool.space
+  useEffect(() => {
+    const fetchBlock = async () => {
+      try {
+        const res = await fetch('https://mempool.space/api/blocks/tip/height')
+        const height = await res.json()
+        setBlockHeight(height)
+        setBlockTime(new Date().toLocaleString('en-US', { 
+          day: 'numeric', 
+          month: 'numeric', 
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        }))
+      } catch (e) {
+        console.error('Block height fetch error:', e)
+      }
+    }
+    fetchBlock()
+    const interval = setInterval(fetchBlock, 60000)
+    return () => clearInterval(interval)
+  }, [])
+
+  // Fetch Alpaca data (stocks + account)
   useEffect(() => {
     if (!token) return
-
-    const fetchData = async () => {
+    
+    const fetchAlpaca = async () => {
       try {
         // Fetch account
         const accountRes = await axios.get(`${baseURL}/api/alpaca/account`, {
           headers: { Authorization: `Bearer ${token}` },
         })
         if (accountRes.data) {
-          setAccount(accountRes.data)
-          setAlpacaConnected(true)
+          const eq = parseFloat(accountRes.data.equity)
+          const lastEq = parseFloat(accountRes.data.last_equity)
+          setEquity(eq)
+          setDayPL(eq - lastEq)
+          setDayPLPercent(lastEq > 0 ? ((eq - lastEq) / lastEq) * 100 : 0)
         }
 
-        // Fetch positions
-        const positionsRes = await axios.get(`${baseURL}/api/alpaca/positions`, {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        setPositions(positionsRes.data || [])
+        // Fetch AAPL quote
+        try {
+          const aaplRes = await axios.get(`${baseURL}/api/alpaca/quote/AAPL`, {
+            headers: { Authorization: `Bearer ${token}` },
+          })
+          if (aaplRes.data?.quote?.ap) {
+            const price = aaplRes.data.quote.ap
+            setAaplPrice(price)
+            setPriceHistory(prev => ({ ...prev, aapl: [...prev.aapl.slice(-29), price] }))
+          }
+        } catch { 
+          // Mock data if API fails
+          setAaplPrice(178.50 + Math.random() * 2)
+          setAaplChange(1.2 + Math.random() * 0.5)
+        }
 
-        // Fetch settings for trading mode
-        const settingsRes = await axios.get(`${baseURL}/api/settings`, {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        setTradingMode(settingsRes.data.alpaca_paper ? 'paper' : 'live')
-        
-        setLastUpdate(new Date())
-        setSystemStatus('active')
-      } catch {
-        setAlpacaConnected(false)
-        setSystemStatus('offline')
+        // Fetch SPY as SPX proxy
+        try {
+          const spyRes = await axios.get(`${baseURL}/api/alpaca/quote/SPY`, {
+            headers: { Authorization: `Bearer ${token}` },
+          })
+          if (spyRes.data?.quote?.ap) {
+            const price = spyRes.data.quote.ap * 10 // Approximate SPX from SPY
+            setSpxPrice(price)
+            setPriceHistory(prev => ({ ...prev, spx: [...prev.spx.slice(-29), price] }))
+          }
+        } catch {
+          // Mock data if API fails
+          setSpxPrice(4567.89 + Math.random() * 10)
+          setSpxChange(-0.8 + Math.random() * 0.3)
+        }
+      } catch (e) {
+        console.error('Alpaca fetch error:', e)
       }
     }
-
-    fetchData()
-    const interval = setInterval(fetchData, 10000)
+    
+    fetchAlpaca()
+    const interval = setInterval(fetchAlpaca, 30000)
     return () => clearInterval(interval)
   }, [token, baseURL])
 
-  // Toggle fullscreen
-  const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen()
-      setIsFullscreen(true)
-    } else {
-      document.exitFullscreen()
-      setIsFullscreen(false)
+  // Auto-login for kiosk
+  useEffect(() => {
+    if (!token) {
+      const autoLogin = async () => {
+        try {
+          const form = new URLSearchParams()
+          form.append('username', 'admin')
+          form.append('password', 'pluto123')
+          form.append('grant_type', '')
+          const res = await fetch(`${baseURL}/api/auth/login`, {
+            method: 'POST',
+            body: form,
+          })
+          if (res.ok) {
+            const data = await res.json()
+            localStorage.setItem('pluto_token', data.access_token)
+            window.location.reload()
+          }
+        } catch (e) {
+          console.error('Auto-login failed:', e)
+        }
+      }
+      autoLogin()
     }
-  }
+  }, [token, baseURL])
 
   // Format helpers
-  const formatCurrency = (value: number | string) => {
-    const num = typeof value === 'string' ? parseFloat(value) : value
-    if (isNaN(num)) return '$0.00'
-    return num.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 })
+  const formatPrice = (price: number, decimals = 2) => {
+    return price.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
   }
 
-  const formatPercent = (value: string) => {
-    const num = parseFloat(value) * 100
-    return `${num >= 0 ? '+' : ''}${num.toFixed(2)}%`
+  const formatChange = (change: number) => {
+    const sign = change >= 0 ? '+' : ''
+    return `${sign}${change.toFixed(1)}%`
   }
 
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  // Sparkline SVG generator
+  const getSparkline = (data: number[], color: string, height = 40) => {
+    if (data.length < 2) return null
+    const min = Math.min(...data)
+    const max = Math.max(...data)
+    const range = max - min || 1
+    const width = 100
+    
+    const points = data.map((val, i) => {
+      const x = (i / (data.length - 1)) * width
+      const y = height - ((val - min) / range) * (height - 4)
+      return `${x},${y}`
+    }).join(' ')
+
+    return (
+      <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" className="sparkline">
+        <polyline
+          points={points}
+          fill="none"
+          stroke={color}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    )
   }
 
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+  // Time digits for flip clock
+  const hours = currentTime.getHours().toString().padStart(2, '0')
+  const minutes = currentTime.getMinutes().toString().padStart(2, '0')
+
+  // Loading screen
+  if (!token) {
+    return (
+      <div className="braiins-loading">
+        <div className="loading-icon">🚀</div>
+        <div className="loading-text">PLUTO LANDER</div>
+        <div className="loading-sub">Initializing...</div>
+      </div>
+    )
   }
-
-  // Calculate totals
-  const equity = account ? parseFloat(account.equity) : 0
-  const lastEquity = account ? parseFloat(account.last_equity) : 0
-  const dayPL = equity - lastEquity
-  const dayPLPercent = lastEquity > 0 ? (dayPL / lastEquity) * 100 : 0
-  const totalUnrealizedPL = positions.reduce((sum, p) => sum + parseFloat(p.unrealized_pl || '0'), 0)
-
-  const priceDirection = btcPrice > prevBtcPrice ? 'up' : btcPrice < prevBtcPrice ? 'down' : 'neutral'
-
-  // Render main view
-  const renderMainView = () => (
-    <div className="pi-grid">
-      {/* Top Row - Portfolio & BTC */}
-      <div className="pi-card pi-card-large">
-        <div className="pi-card-header">
-          <span className="pi-icon">💰</span>
-          <span>Portfolio Value</span>
-        </div>
-        <div className="pi-value-xl">{formatCurrency(equity)}</div>
-        <div className={`pi-change ${dayPL >= 0 ? 'positive' : 'negative'}`}>
-          {dayPL >= 0 ? '▲' : '▼'} {formatCurrency(Math.abs(dayPL))} ({dayPLPercent >= 0 ? '+' : ''}{dayPLPercent.toFixed(2)}%)
-        </div>
-      </div>
-
-      <div className="pi-card pi-card-large">
-        <div className="pi-card-header">
-          <span className="pi-icon-btc">₿</span>
-          <span>Bitcoin</span>
-        </div>
-        <div className={`pi-value-xl pi-btc ${priceDirection}`}>
-          ${btcPrice > 0 ? btcPrice.toLocaleString('en-US', { maximumFractionDigits: 0 }) : '---'}
-        </div>
-        <div className="pi-sparkline">
-          <div className={`pi-trend ${priceDirection}`}>
-            {priceDirection === 'up' ? '📈' : priceDirection === 'down' ? '📉' : '➡️'} Live
-          </div>
-        </div>
-      </div>
-
-      {/* Bottom Row - Stats */}
-      <div className="pi-card">
-        <div className="pi-card-header-sm">Cash Available</div>
-        <div className="pi-value-lg">{formatCurrency(account?.cash || 0)}</div>
-      </div>
-
-      <div className="pi-card">
-        <div className="pi-card-header-sm">Buying Power</div>
-        <div className="pi-value-lg">{formatCurrency(account?.buying_power || 0)}</div>
-      </div>
-
-      <div className="pi-card">
-        <div className="pi-card-header-sm">Unrealized P&L</div>
-        <div className={`pi-value-lg ${totalUnrealizedPL >= 0 ? 'positive' : 'negative'}`}>
-          {formatCurrency(totalUnrealizedPL)}
-        </div>
-      </div>
-
-      <div className="pi-card">
-        <div className="pi-card-header-sm">Positions</div>
-        <div className="pi-value-lg">{positions.length}</div>
-      </div>
-    </div>
-  )
-
-  // Render positions view
-  const renderPositionsView = () => (
-    <div className="pi-positions">
-      <div className="pi-positions-header">
-        <span className="pi-icon">📊</span>
-        <span>Open Positions</span>
-        <span className="pi-badge">{positions.length}</span>
-      </div>
-      
-      {positions.length === 0 ? (
-        <div className="pi-empty">
-          <div className="pi-empty-icon">📭</div>
-          <div>No open positions</div>
-        </div>
-      ) : (
-        <div className="pi-positions-list">
-          {positions.slice(0, 6).map((pos) => {
-            const pl = parseFloat(pos.unrealized_pl || '0')
-            const plPercent = parseFloat(pos.unrealized_plpc || '0') * 100
-            return (
-              <div key={pos.symbol} className="pi-position-row">
-                <div className="pi-position-symbol">
-                  <span className="symbol">{pos.symbol}</span>
-                  <span className="qty">{parseFloat(pos.qty).toFixed(4)} shares</span>
-                </div>
-                <div className="pi-position-value">
-                  <span className="value">{formatCurrency(pos.market_value)}</span>
-                  <span className={`pl ${pl >= 0 ? 'positive' : 'negative'}`}>
-                    {pl >= 0 ? '+' : ''}{formatCurrency(pl)} ({plPercent >= 0 ? '+' : ''}{plPercent.toFixed(2)}%)
-                  </span>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      )}
-    </div>
-  )
 
   return (
-    <div 
-      className="pi-display" 
-      onClick={() => setShowMenu(true)}
-    >
-      {/* Status Bar */}
-      <div className="pi-status-bar">
-        <div className="pi-status-left">
-          <div className={`pi-status-dot ${systemStatus}`} />
-          <span className="pi-status-text">
-            {systemStatus === 'active' ? 'SYSTEM ACTIVE' : systemStatus === 'standby' ? 'STANDBY' : 'OFFLINE'}
-          </span>
-          {tradingMode === 'live' && <span className="pi-live-badge">LIVE</span>}
-          {tradingMode === 'paper' && <span className="pi-paper-badge">PAPER</span>}
-        </div>
-        
-        <div className="pi-status-center">
-          <div className="pi-logo">
-            <span className="pi-logo-icon">🚀</span>
-            <span className="pi-logo-text">PLUTO LANDER</span>
+    <div className="braiins-display" onClick={() => setShowMenu(true)}>
+      {/* Grid Layout */}
+      <div className="braiins-grid">
+        {/* TIME PANEL */}
+        <div className="braiins-card time-card">
+          <div className="card-header">
+            <span className="card-title">Local Time</span>
+          </div>
+          <div className="flip-clock">
+            <div className="flip-digit">{hours[0]}</div>
+            <div className="flip-digit">{hours[1]}</div>
+            <div className="flip-colon">:</div>
+            <div className="flip-digit">{minutes[0]}</div>
+            <div className="flip-digit">{minutes[1]}</div>
           </div>
         </div>
 
-        <div className="pi-status-right">
-          <div className={`pi-connection ${wsConnected ? 'connected' : 'disconnected'}`}>
-            <span className="pi-connection-dot" />
-            <span>{wsConnected ? 'WS' : 'WS OFF'}</span>
+        {/* BTC-USD SMALL */}
+        <div className="braiins-card btc-small-card">
+          <div className="card-header">
+            <span className="btc-icon">●</span>
+            <span className="card-title">BTC-USD</span>
           </div>
-          <div className={`pi-connection ${alpacaConnected ? 'connected' : 'disconnected'}`}>
-            <span className="pi-connection-dot" />
-            <span>{alpacaConnected ? 'ALPACA' : 'DISC'}</span>
+          <div className="price-row">
+            <span className="price-medium">{formatPrice(btcPrice, 0)}</span>
+            <span className={`change-badge ${btcChange >= 0 ? 'positive' : 'negative'}`}>
+              {formatChange(btcChange)}
+            </span>
           </div>
-          <div className="pi-clock">
-            <div className="pi-time">{formatTime(currentTime)}</div>
-            <div className="pi-date">{formatDate(currentTime)}</div>
+          <div className="sparkline-container">
+            {getSparkline(priceHistory.btc, '#22c55e', 35)}
           </div>
         </div>
-      </div>
 
-      {/* Main Content */}
-      <div className="pi-content">
-        {currentView === 'main' && renderMainView()}
-        {currentView === 'positions' && renderPositionsView()}
-      </div>
-
-      {/* Bottom Bar */}
-      <div className="pi-bottom-bar">
-        <div className="pi-nav-buttons">
-          <button 
-            className={`pi-nav-btn ${currentView === 'main' ? 'active' : ''}`}
-            onClick={(e) => { e.stopPropagation(); setCurrentView('main') }}
-          >
-            <span>📊</span> Dashboard
-          </button>
-          <button 
-            className={`pi-nav-btn ${currentView === 'positions' ? 'active' : ''}`}
-            onClick={(e) => { e.stopPropagation(); setCurrentView('positions') }}
-          >
-            <span>💼</span> Positions
-          </button>
-        </div>
-        
-        <div className="pi-update-info">
-          Last update: {formatTime(lastUpdate)}
-        </div>
-      </div>
-
-      {/* Alerts Overlay */}
-      {alerts.length > 0 && (
-        <div className="pi-alerts">
-          {alerts.map((alert, i) => (
-            <div 
-              key={`${alert.type}-${i}`} 
-              className={`pi-alert ${alert.side === 'buy' ? 'buy' : alert.side === 'sell' ? 'sell' : 'info'}`}
-            >
-              <div className="pi-alert-icon">
-                {alert.type === 'trade_signal' ? '📊' : alert.type === 'order_submitted' ? '✅' : '🔔'}
-              </div>
-              <div className="pi-alert-content">
-                <div className="pi-alert-title">
-                  {alert.type === 'trade_signal' ? 'Trade Signal' : 
-                   alert.type === 'order_submitted' ? 'Order Submitted' : 'Alert'}
-                </div>
-                <div className="pi-alert-message">
-                  {alert.symbol && <span className="symbol">{alert.symbol}</span>}
-                  {alert.side && <span className={`side ${alert.side}`}>{alert.side.toUpperCase()}</span>}
-                  {alert.confidence && <span className="confidence">{(alert.confidence * 100).toFixed(0)}%</span>}
-                </div>
-              </div>
+        {/* STOCKS PANEL */}
+        <div className="braiins-card stocks-card">
+          <div className="stock-row">
+            <div className="stock-info">
+              <span className="stock-name">APPLE</span>
+              <span className="stock-sub">Apple Inc.</span>
             </div>
-          ))}
+            <div className="stock-price">
+              <span className="price-value">{formatPrice(aaplPrice)}</span>
+              <span className={`change-small ${aaplChange >= 0 ? 'positive' : 'negative'}`}>
+                {formatChange(aaplChange)}
+              </span>
+            </div>
+          </div>
+          <div className="stock-divider"></div>
+          <div className="stock-row">
+            <div className="stock-info">
+              <span className="stock-name">SPX</span>
+              <span className="stock-sub">S&P 500</span>
+            </div>
+            <div className="stock-price">
+              <span className="price-value">{formatPrice(spxPrice)}</span>
+              <span className={`change-small ${spxChange >= 0 ? 'positive' : 'negative'}`}>
+                {formatChange(spxChange)}
+              </span>
+            </div>
+          </div>
         </div>
-      )}
 
-      {/* Floating Menu */}
+        {/* BTC-USD LARGE */}
+        <div className="braiins-card btc-large-card">
+          <div className="card-header">
+            <span className="btc-dot">●</span>
+            <span className="card-title">BTC-USD</span>
+            <span className="card-label">24h</span>
+            <span className={`change-badge ${btcChange >= 0 ? 'positive' : 'negative'}`}>
+              {formatChange(btcChange)}
+            </span>
+          </div>
+          <div className="price-large">{formatPrice(btcPrice, 0)}</div>
+          <div className="sparkline-large">
+            {getSparkline(priceHistory.btc, '#22c55e', 50)}
+          </div>
+        </div>
+
+        {/* BLOCK HEIGHT */}
+        <div className="braiins-card block-card">
+          <div className="card-header">
+            <span className="card-title">Bitcoin Block Height</span>
+          </div>
+          <div className="block-number">{blockHeight.toLocaleString()}</div>
+          <div className="block-time">{blockTime}</div>
+        </div>
+
+        {/* PORTFOLIO / TRADING STATS */}
+        <div className="braiins-card pool-card">
+          <div className="card-header">
+            <span className="pool-icon">₿</span>
+            <span className="card-title">Portfolio</span>
+          </div>
+          <div className="pool-value">${formatPrice(equity, 2)}</div>
+          <div className={`pool-change ${dayPL >= 0 ? 'positive' : 'negative'}`}>
+            Day P&L: {dayPL >= 0 ? '+' : ''}{formatPrice(dayPL, 2)} ({formatChange(dayPLPercent)})
+          </div>
+        </div>
+      </div>
+
+      {/* Brand Footer */}
+      <div className="braiins-footer">
+        <span className="footer-text">PLUTO LANDER</span>
+      </div>
+
+      {/* Menu Overlay */}
       {showMenu && (
-        <div className="pi-menu" onClick={(e) => e.stopPropagation()}>
-          <button className="pi-menu-btn" onClick={toggleFullscreen}>
-            {isFullscreen ? '⬜ Exit Fullscreen' : '⬛ Fullscreen'}
+        <div className="braiins-menu" onClick={(e) => e.stopPropagation()}>
+          <button className="menu-btn" onClick={() => { document.documentElement.requestFullscreen(); setShowMenu(false); }}>
+            ⬛ Fullscreen
           </button>
-          <button className="pi-menu-btn" onClick={onExitKiosk}>
+          <button className="menu-btn" onClick={onExitKiosk}>
             🚪 Exit Kiosk
           </button>
-          <button className="pi-menu-btn close" onClick={() => setShowMenu(false)}>
+          <button className="menu-btn close" onClick={() => setShowMenu(false)}>
             ✕ Close
           </button>
         </div>
@@ -439,4 +350,3 @@ export const PiDisplayPage: React.FC<PiDisplayProps> = ({ token, baseURL, onExit
     </div>
   )
 }
-

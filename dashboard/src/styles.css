@@ -463,9 +463,427 @@ body {
   color: var(--error);
 }
 
-/* ============== PI DISPLAY - 5" KIOSK MODE ============== */
+/* ============== BRAIINS DECK STYLE DISPLAY ============== */
 /* Optimized for 800x480 Raspberry Pi touchscreen */
 
+.braiins-loading {
+  position: fixed;
+  inset: 0;
+  background: #0a0a0a;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+.loading-icon {
+  font-size: 64px;
+  animation: logoFloat 2s ease-in-out infinite;
+}
+
+.loading-text {
+  font-size: 28px;
+  font-weight: 300;
+  letter-spacing: 8px;
+  color: #fff;
+}
+
+.loading-sub {
+  font-size: 14px;
+  color: #666;
+}
+
+.braiins-display {
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(180deg, #0d0d0d 0%, #141414 100%);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  font-family: 'SF Pro Display', -apple-system, 'Inter', sans-serif;
+  overflow: hidden;
+}
+
+.braiins-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 12px;
+}
+
+.braiins-card {
+  background: linear-gradient(145deg, #1a1a1a 0%, #141414 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+.braiins-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.card-title {
+  font-size: 11px;
+  font-weight: 500;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.card-label {
+  font-size: 10px;
+  color: #666;
+  margin-left: auto;
+}
+
+/* TIME CARD - Flip Clock */
+.time-card {
+  justify-content: center;
+  align-items: center;
+}
+
+.flip-clock {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.flip-digit {
+  width: 52px;
+  height: 72px;
+  background: linear-gradient(180deg, #1f1f1f 0%, #1a1a1a 49%, #151515 51%, #111 100%);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48px;
+  font-weight: 300;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+  position: relative;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+
+.flip-digit::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: rgba(0,0,0,0.5);
+}
+
+.flip-colon {
+  font-size: 40px;
+  font-weight: 300;
+  color: #fff;
+  margin: 0 2px;
+  animation: colonBlink 1s ease-in-out infinite;
+}
+
+@keyframes colonBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* BTC SMALL CARD */
+.btc-small-card .card-header {
+  margin-bottom: 4px;
+}
+
+.btc-icon {
+  color: #f7931a;
+  font-size: 10px;
+}
+
+.price-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.price-medium {
+  font-size: 26px;
+  font-weight: 500;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+
+.change-badge {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.change-badge.positive {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+}
+
+.change-badge.negative {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+.sparkline-container {
+  flex: 1;
+  min-height: 30px;
+}
+
+.sparkline {
+  width: 100%;
+  height: 100%;
+}
+
+/* STOCKS CARD */
+.stocks-card {
+  justify-content: center;
+  gap: 8px;
+}
+
+.stock-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.stock-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.stock-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.stock-sub {
+  font-size: 10px;
+  color: #666;
+}
+
+.stock-price {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.price-value {
+  font-size: 18px;
+  font-weight: 500;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+
+.change-small {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.change-small.positive { color: #22c55e; }
+.change-small.negative { color: #ef4444; }
+
+.stock-divider {
+  height: 1px;
+  background: rgba(255,255,255,0.08);
+  margin: 4px 0;
+}
+
+/* BTC LARGE CARD */
+.btc-large-card {
+  position: relative;
+}
+
+.btc-dot {
+  color: #f7931a;
+  font-size: 12px;
+  text-shadow: 0 0 8px rgba(247, 147, 26, 0.5);
+}
+
+.price-large {
+  font-size: 56px;
+  font-weight: 300;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  margin: 4px 0;
+}
+
+.sparkline-large {
+  flex: 1;
+  min-height: 40px;
+  margin-top: 8px;
+}
+
+/* BLOCK HEIGHT CARD */
+.block-card {
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.block-number {
+  font-size: 42px;
+  font-weight: 300;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.block-time {
+  font-size: 11px;
+  color: #666;
+  margin-top: 4px;
+}
+
+/* POOL/PORTFOLIO CARD */
+.pool-card {
+  justify-content: center;
+}
+
+.pool-icon {
+  color: #f7931a;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.pool-value {
+  font-size: 28px;
+  font-weight: 400;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+  margin: 4px 0;
+}
+
+.pool-change {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.pool-change.positive { color: #22c55e; }
+.pool-change.negative { color: #ef4444; }
+
+/* FOOTER */
+.braiins-footer {
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.footer-text {
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 6px;
+  color: #333;
+}
+
+/* MENU */
+.braiins-menu {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(10, 10, 10, 0.98);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 100;
+  min-width: 180px;
+}
+
+.menu-btn {
+  padding: 12px 20px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.menu-btn:hover {
+  background: rgba(255,255,255,0.1);
+}
+
+.menu-btn.close {
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+/* 800x480 Responsive */
+@media (max-width: 850px) {
+  .braiins-display {
+    padding: 8px;
+  }
+  
+  .braiins-grid {
+    gap: 8px;
+  }
+  
+  .braiins-card {
+    padding: 10px 12px;
+    border-radius: 12px;
+  }
+  
+  .flip-digit {
+    width: 44px;
+    height: 60px;
+    font-size: 38px;
+  }
+  
+  .price-large {
+    font-size: 44px;
+  }
+  
+  .block-number {
+    font-size: 34px;
+  }
+  
+  .pool-value {
+    font-size: 24px;
+  }
+  
+  .braiins-footer {
+    height: 24px;
+  }
+  
+  .footer-text {
+    font-size: 12px;
+    letter-spacing: 4px;
+  }
+}
+
+/* ============== LEGACY PI DISPLAY ============== */
 .pi-display {
   position: fixed;
   top: 0;
