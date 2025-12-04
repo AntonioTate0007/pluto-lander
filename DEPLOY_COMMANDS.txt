@@ -1,0 +1,11 @@
+# Copy and paste these commands ON THE PI (one at a time):
+
+cd /home/admin/pluto-lander
+git pull origin main
+cd dashboard
+npm install
+npm run build
+sudo systemctl restart pluto-backend
+
+# Then clear browser cache and visit http://192.168.1.208:8000
+
