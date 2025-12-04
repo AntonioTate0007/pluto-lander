@@ -5,7 +5,6 @@
  */
 
 import React, { useEffect, useState } from 'react'
-import { motion } from 'framer-motion'
 
 interface LandingPageProps {
   onLaunchDashboard: () => void
@@ -52,22 +51,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       {/* Floating particles */}
       <div className="absolute inset-0 overflow-hidden">
         {[...Array(20)].map((_, i) => (
-          <motion.div
+          <div
             key={i}
-            className="absolute w-1 h-1 rounded-full"
+            className="absolute w-1 h-1 rounded-full floating-particle"
             style={{
               background: 'rgba(255, 167, 38, 0.5)',
               left: `${Math.random() * 100}%`,
               top: `${Math.random() * 100}%`,
-            }}
-            animate={{
-              y: [0, -30, 0],
-              opacity: [0.3, 1, 0.3],
-            }}
-            transition={{
-              duration: 3 + Math.random() * 2,
-              repeat: Infinity,
-              delay: Math.random() * 2,
+              animationDelay: `${Math.random() * 2}s`,
             }}
           />
         ))}
@@ -102,51 +93,33 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         {/* Hero Section */}
         <div className="grid md:grid-cols-2 gap-12 items-center mb-32">
           {/* Left: Text Content */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-          >
-            <motion.h1 
-              className="text-6xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-orange-400 via-cyan-400 to-orange-400 bg-clip-text text-transparent"
-              animate={{
-                backgroundPosition: ['0%', '100%'],
-              }}
-              transition={{
-                duration: 3,
-                repeat: Infinity,
-                repeatType: 'reverse',
-              }}
-            >
+          <div className="fade-in-up">
+            <h1 className="text-6xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-orange-400 via-cyan-400 to-orange-400 bg-clip-text text-transparent animate-gradient">
               Trade.
               <br />
               Monitor.
               <br />
               <span className="text-white">Profit.</span>
-            </motion.h1>
+            </h1>
             
             <p className="text-xl text-gray-300 mb-8 leading-relaxed">
               Advanced algorithmic trading with real-time risk controls and AI-powered market analysis.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4">
-              <motion.button
+              <button
                 onClick={onLaunchDashboard}
-                className="px-8 py-4 rounded-full bg-gradient-to-r from-orange-400 to-orange-600 text-white font-semibold text-lg shadow-lg shadow-orange-500/50 hover:shadow-xl hover:shadow-orange-500/70 transition-all"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                className="px-8 py-4 rounded-full bg-gradient-to-r from-orange-400 to-orange-600 text-white font-semibold text-lg shadow-lg shadow-orange-500/50 hover:shadow-xl hover:shadow-orange-500/70 transition-all hover:scale-105 active:scale-95"
               >
                 Launch Dashboard
-              </motion.button>
+              </button>
               
-              <motion.button
+              <button
                 onClick={onConfigureBot}
-                className="px-8 py-4 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 text-white font-semibold text-lg hover:bg-white/20 transition-all"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                className="px-8 py-4 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 text-white font-semibold text-lg hover:bg-white/20 transition-all hover:scale-105 active:scale-95"
               >
                 Configure Bot
-              </motion.button>
+              </button>
             </div>
 
             {/* Stats */}
@@ -164,55 +137,33 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 <div className="text-sm text-gray-400">Uptime</div>
               </div>
             </div>
-          </motion.div>
+          </div>
 
           {/* Right: Glassmorphism Cards Stack */}
-          <motion.div
-            initial={{ opacity: 0, x: 30 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            className="relative"
-          >
+          <div className="relative fade-in-right">
             {/* Card Stack */}
             <div className="relative">
               {/* Card 1: Portfolio Value */}
-              <motion.div
-                className="absolute top-0 left-0 w-full p-6 rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl"
-                animate={{ y: [0, -10, 0] }}
-                transition={{ duration: 4, repeat: Infinity }}
-              >
+              <div className="absolute top-0 left-0 w-full p-6 rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl floating-card-1">
                 <div className="text-sm text-gray-400 mb-2">Portfolio Value</div>
                 <div className="text-4xl font-bold text-white mb-4">$100,000</div>
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-green-400"></div>
                   <span className="text-sm text-green-400">+$1,234.56 (1.2%)</span>
                 </div>
-              </motion.div>
+              </div>
 
               {/* Card 2: P&L */}
-              <motion.div
-                className="absolute top-8 left-8 w-full p-6 rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl"
-                animate={{ y: [0, -8, 0] }}
-                transition={{ duration: 4, repeat: Infinity, delay: 0.5 }}
-              >
+              <div className="absolute top-8 left-8 w-full p-6 rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl floating-card-2">
                 <div className="text-sm text-gray-400 mb-2">Today's P&L</div>
                 <div className="text-3xl font-bold text-white mb-4">+$567.89</div>
                 <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-                  <motion.div
-                    className="h-full bg-gradient-to-r from-green-400 to-green-600"
-                    initial={{ width: '0%' }}
-                    animate={{ width: '65%' }}
-                    transition={{ duration: 1 }}
-                  />
+                  <div className="h-full bg-gradient-to-r from-green-400 to-green-600 progress-bar" style={{ width: '65%' }} />
                 </div>
-              </motion.div>
+              </div>
 
               {/* Card 3: BTC Ticker */}
-              <motion.div
-                className="absolute top-16 left-16 w-full p-6 rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl"
-                animate={{ y: [0, -6, 0] }}
-                transition={{ duration: 4, repeat: Infinity, delay: 1 }}
-              >
+              <div className="absolute top-16 left-16 w-full p-6 rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl floating-card-3">
                 <div className="flex items-center justify-between mb-4">
                   <div className="text-sm text-gray-400">BTC/USD</div>
                   <div className="text-sm text-green-400">+2.5%</div>
@@ -234,9 +185,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                     </linearGradient>
                   </defs>
                 </svg>
-              </motion.div>
+              </div>
             </div>
-          </motion.div>
+          </div>
         </div>
 
         {/* Features Grid */}
@@ -246,18 +197,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             { icon: '🤖', title: 'AI Powered', desc: 'Machine learning algorithms optimize trades' },
             { icon: '🛡️', title: 'Risk Managed', desc: 'Advanced stop-loss and position limits' },
           ].map((feature, i) => (
-            <motion.div
+            <div
               key={i}
-              className="p-6 rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10 hover:bg-white/10 transition-all"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.3 + i * 0.1 }}
-              whileHover={{ scale: 1.05, y: -5 }}
+              className="p-6 rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10 hover:bg-white/10 transition-all hover:scale-105 hover:-translate-y-1 feature-card"
+              style={{ animationDelay: `${0.3 + i * 0.1}s` }}
             >
               <div className="text-4xl mb-4">{feature.icon}</div>
               <h3 className="text-xl font-semibold text-white mb-2">{feature.title}</h3>
               <p className="text-gray-400">{feature.desc}</p>
-            </motion.div>
+            </div>
           ))}
         </div>
       </div>

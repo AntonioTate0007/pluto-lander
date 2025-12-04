@@ -48,6 +48,122 @@ body {
   pointer-events: none;
 }
 
+/* Landing Page Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes float2 {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes float3 {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes particleFloat {
+  0%, 100% {
+    transform: translateY(0);
+    opacity: 0.3;
+  }
+  50% {
+    transform: translateY(-30px);
+    opacity: 1;
+  }
+}
+
+@keyframes gradientShift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes progressFill {
+  from {
+    width: 0%;
+  }
+  to {
+    width: 65%;
+  }
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.8s ease-out;
+}
+
+.fade-in-right {
+  animation: fadeInRight 0.8s ease-out 0.2s both;
+}
+
+.floating-card-1 {
+  animation: float 4s ease-in-out infinite;
+}
+
+.floating-card-2 {
+  animation: float2 4s ease-in-out infinite 0.5s;
+}
+
+.floating-card-3 {
+  animation: float3 4s ease-in-out infinite 1s;
+}
+
+.floating-particle {
+  animation: particleFloat 3s ease-in-out infinite;
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradientShift 3s ease infinite;
+}
+
+.progress-bar {
+  animation: progressFill 1s ease-out;
+}
+
+.feature-card {
+  animation: fadeInUp 0.5s ease-out both;
+}
+
 /* ============== PAGE LOAD ANIMATIONS ============== */
 @keyframes fadeInUp {
   from {
