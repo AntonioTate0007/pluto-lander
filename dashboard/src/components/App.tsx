@@ -4,6 +4,7 @@ import { DashboardPage } from './DashboardPage'
 import { SettingsPage } from './SettingsPage'
 import { TradesPage } from './TradesPage'
 import { PiDisplayPage } from './PiDisplayPage'
+import { LandingPage } from './LandingPage'
 
 interface AuthContextType {
   token: string | null
@@ -163,9 +164,22 @@ export const App: React.FC = () => {
     )
   }
 
-  // Normal mode - require login
+  // Normal mode - show landing page or login
   if (!token) {
-    return <LoginPage onLoggedIn={setToken} baseURL={baseURL} />
+    const [showLogin, setShowLogin] = useState(false)
+    
+    if (showLogin) {
+      return <LoginPage onLoggedIn={setToken} baseURL={baseURL} />
+    }
+    
+    return (
+      <LandingPage
+        onLaunchDashboard={() => setShowLogin(true)}
+        onConfigureBot={() => setShowLogin(true)}
+        btcPrice={btcPrice}
+        btcChange={((btcPrice - prevBtcPrice) / prevBtcPrice) * 100}
+      />
+    )
   }
 
   const priceChange = btcPrice - prevBtcPrice
