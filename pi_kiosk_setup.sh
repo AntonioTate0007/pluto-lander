@@ -42,3 +42,4 @@ echo "✅ Kiosk mode configured!"
 echo "📺 The Pi will now auto-start Pluto Lander kiosk on boot."
 echo "🔄 Reboot to test: sudo reboot"
 
+

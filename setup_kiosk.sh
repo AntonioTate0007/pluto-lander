@@ -38,3 +38,4 @@ echo "✅ Kiosk mode configured!"
 echo "🔄 Rebooting now..."
 sudo reboot
 
+

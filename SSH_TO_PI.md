@@ -91,3 +91,4 @@ bash fix_pi_kiosk.sh
 ## Exit SSH
 Type `exit` or press `Ctrl+D`
 
+

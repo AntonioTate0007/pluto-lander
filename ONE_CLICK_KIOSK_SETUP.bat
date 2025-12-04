@@ -20,3 +20,4 @@ echo   Kiosk will start automatically.
 echo ========================================
 pause
 
+
