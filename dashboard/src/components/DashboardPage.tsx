@@ -153,7 +153,7 @@ export const DashboardPage: React.FC<Props> = ({ btcPrice }) => {
 
             {/* Time Display */}
             <div className="text-white font-mono text-sm">
-              {currentTime.toLocaleTimeString('en-US', { hour12: false })}
+              {currentTime.toLocaleTimeString('en-US', { hour12: true, hour: 'numeric', minute: '2-digit' })}
             </div>
           </div>
         </div>

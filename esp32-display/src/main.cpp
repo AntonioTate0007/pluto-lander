@@ -52,9 +52,12 @@ void drawTimePanel() {
     time(&now);
     localtime_r(&now, &timeinfo);
     
-    // Huge time display (12:43 style)
-    char timeStr[8];
-    sprintf(timeStr, "%02d:%02d", timeinfo.tm_hour, timeinfo.tm_min);
+    // Huge time display (12-hour format with AM/PM)
+    char timeStr[12];
+    int hour12 = timeinfo.tm_hour % 12;
+    if (hour12 == 0) hour12 = 12; // Convert 0 to 12 for 12-hour format
+    const char* ampm = (timeinfo.tm_hour < 12) ? "AM" : "PM";
+    sprintf(timeStr, "%d:%02d %s", hour12, timeinfo.tm_min, ampm);
     tft.setTextColor(WHITE, PANEL);
     tft.setTextDatum(TC_DATUM);
     tft.drawString(timeStr, 120, 55, 7); // Large font size 7

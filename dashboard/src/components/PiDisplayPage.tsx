@@ -234,8 +234,10 @@ export const PiDisplayPage: React.FC<PiDisplayProps> = ({ token, baseURL, onExit
   }
 
   // Time digits for flip clock
-  const hours = currentTime.getHours().toString().padStart(2, '0')
+  const hours24 = currentTime.getHours()
+  const hours12 = hours24 % 12 || 12 // Convert to 12-hour format (0 becomes 12)
   const minutes = currentTime.getMinutes().toString().padStart(2, '0')
+  const ampm = hours24 < 12 ? 'AM' : 'PM'
 
   // In kiosk mode, show display even without token (will use public APIs)
   // No loading screen - just show the dashboard
@@ -250,11 +252,12 @@ export const PiDisplayPage: React.FC<PiDisplayProps> = ({ token, baseURL, onExit
             <span className="card-title">Local Time</span>
           </div>
           <div className="flip-clock">
-            <div className="flip-digit">{hours[0]}</div>
-            <div className="flip-digit">{hours[1]}</div>
+            <div className="flip-digit">{hours12.toString().padStart(2, '0')[0]}</div>
+            <div className="flip-digit">{hours12.toString().padStart(2, '0')[1]}</div>
             <div className="flip-colon">:</div>
             <div className="flip-digit">{minutes[0]}</div>
             <div className="flip-digit">{minutes[1]}</div>
+            <div className="flip-ampm">{ampm}</div>
           </div>
         </div>
 
