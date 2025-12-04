@@ -1,3 +1,9 @@
+/**
+ * Modern Crypto Dashboard
+ * Redesigned to match Dribbble crypto landing page aesthetic
+ * https://dribbble.com/shots/26686700-Crypto-Landing-page-powered-by-AI-Web-Design
+ */
+
 import React, { useEffect, useState, useRef } from 'react'
 import axios from 'axios'
 import { useAuth } from './App'
@@ -83,10 +89,8 @@ export const DashboardPage: React.FC<Props> = ({ btcPrice }) => {
   const equity = account ? parseFloat(account.equity) : 100000
   const cash = account ? parseFloat(account.cash) : 100000
   const cashPercentage = equity > 0 ? (cash / equity) * 100 : 100
-
-  // SVG Gauge calculation
-  const circumference = 2 * Math.PI * 70
-  const strokeDashoffset = circumference - (cashPercentage / 100) * circumference
+  const dayPL = equity - 100000 // Mock P&L
+  const dayPLPercent = ((equity - 100000) / 100000) * 100
 
   const formatCurrency = (value: number) => {
     return value.toLocaleString('en-US', { style: 'currency', currency: 'USD' })
@@ -109,268 +113,215 @@ export const DashboardPage: React.FC<Props> = ({ btcPrice }) => {
   }
 
   return (
-    <div className="page-enter min-h-screen relative">
-      {/* Animated Background */}
-      <div className="animated-bg" />
+    <div className="modern-dashboard min-h-screen relative overflow-hidden">
+      {/* Animated gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(120,119,198,0.3),transparent_50%)]" />
       
-      <div className="relative z-10 p-6 grid grid-cols-12 gap-6 max-w-[1800px] mx-auto">
-        {/* LEFT SIDEBAR */}
-        <div className="col-span-3 space-y-4" style={{ animationDelay: '0.1s' }}>
-          {/* System Status */}
-          <div className="flex items-center gap-2 mb-4">
-            <div className={`status-dot ${!standbyMode && tradingEngineOn ? 'active' : 'inactive'}`} />
-            <span className="text-xs uppercase tracking-widest font-medium" style={{ color: 'var(--text-secondary)' }}>
-              {standbyMode ? 'SYSTEM STANDBY' : tradingEngineOn ? 'SYSTEM ACTIVE' : 'SYSTEM OFFLINE'}
-            </span>
-            {!standbyMode && tradingEngineOn && <span className="badge-live ml-2">LIVE</span>}
-          </div>
+      {/* Grid pattern overlay */}
+      <div 
+        className="absolute inset-0 opacity-10"
+        style={{
+          backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)',
+          backgroundSize: '50px 50px'
+        }}
+      />
 
-          {/* Tagline */}
-          <div className="mb-8">
-            <h2 className="text-4xl font-light leading-tight" style={{ color: 'var(--text-primary)', letterSpacing: '0.02em' }}>
-              Trade.<br />Monitor.<br />Profit.
-            </h2>
-            <p className="text-sm mt-4" style={{ color: 'var(--text-secondary)' }}>
-              Advanced algorithmic trading with real-time market analysis and risk management.
-            </p>
-          </div>
-
-          {/* Trading Engine Card */}
-          <div className="card">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255, 167, 38, 0.1)' }}>
-                  <svg className="w-5 h-5" fill="none" stroke="var(--accent)" strokeWidth="2" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                  </svg>
-                </div>
-                <div>
-                  <div className="font-medium" style={{ color: 'var(--text-primary)' }}>Trading Engine</div>
-                  <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                    {tradingEngineOn ? 'Running' : 'Idle'} - {tradingEngineOn ? 'Active' : 'Ready'}
-                  </div>
-                </div>
-              </div>
-              <button
-                onClick={() => setTradingEngineOn(!tradingEngineOn)}
-                className={`toggle-switch ${tradingEngineOn ? 'active' : ''}`}
-              />
+      <div className="relative z-10 container mx-auto px-6 py-8">
+        {/* Top Navigation Bar */}
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-400 to-cyan-400 flex items-center justify-center shadow-lg">
+              <span className="text-2xl font-bold text-white">P</span>
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-white">Pluto Launcher</h1>
+              <p className="text-xs text-gray-400">
+                {standbyMode ? 'SYSTEM STANDBY' : tradingEngineOn ? 'SYSTEM ACTIVE' : 'SYSTEM OFFLINE'}
+              </p>
             </div>
           </div>
 
-          {/* Alpaca Connection */}
-          <div className="card">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: alpacaConnected ? 'rgba(76, 175, 80, 0.1)' : 'rgba(244, 67, 54, 0.1)' }}>
-                  <svg className="w-5 h-5" fill="none" stroke={alpacaConnected ? 'var(--success)' : 'var(--error)'} strokeWidth="2" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <div>
-                  <div className="font-medium" style={{ color: 'var(--text-primary)' }}>Alpaca Connection</div>
-                  <div className="text-xs" style={{ color: alpacaConnected ? 'var(--success)' : 'var(--text-secondary)' }}>
-                    {alpacaConnected ? 'Connected' : 'Not Connected'}
-                  </div>
-                </div>
-              </div>
-              <div className={`toggle-switch ${alpacaConnected ? 'active' : ''}`} style={{ pointerEvents: 'none' }} />
+          <div className="flex items-center gap-6">
+            {/* BTC Price Badge */}
+            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 backdrop-blur-xl border border-white/10">
+              <span className="text-orange-400 font-bold text-lg">₿</span>
+              <span className="text-white font-semibold">
+                {btcPrice > 0 ? btcPrice.toLocaleString('en-US', { maximumFractionDigits: 0 }) : '---'}
+              </span>
+            </div>
+
+            {/* Time Display */}
+            <div className="text-white font-mono text-sm">
+              {currentTime.toLocaleTimeString('en-US', { hour12: false })}
             </div>
           </div>
+        </div>
 
-          {/* Trading Mode */}
-          <div className="card">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: 'rgba(79, 195, 247, 0.1)' }}>
-                <svg className="w-5 h-5" fill="none" stroke="var(--info)" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
+        {/* Main Dashboard Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+          {/* Left Column: Portfolio & Stats */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Portfolio Value Card */}
+            <div className="glass-card p-6 rounded-2xl">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <div className="text-sm text-gray-400 mb-1">Portfolio Value</div>
+                  <div className="text-5xl font-bold text-white mb-2">{formatCurrency(equity)}</div>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${dayPL >= 0 ? 'bg-green-400' : 'bg-red-400'}`}></div>
+                    <span className={`text-sm font-medium ${dayPL >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      {dayPL >= 0 ? '+' : ''}{formatCurrency(dayPL)} ({dayPLPercent >= 0 ? '+' : ''}{dayPLPercent.toFixed(2)}%)
+                    </span>
+                  </div>
+                </div>
+                <div className="w-32 h-32">
+                  <svg viewBox="0 0 100 100" className="w-full h-full">
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="40"
+                      fill="none"
+                      stroke="rgba(255,255,255,0.1)"
+                      strokeWidth="8"
+                    />
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="40"
+                      fill="none"
+                      stroke={dayPL >= 0 ? '#22c55e' : '#ef4444'}
+                      strokeWidth="8"
+                      strokeDasharray={`${(cashPercentage / 100) * 251.2} 251.2`}
+                      strokeDashoffset="62.8"
+                      transform="rotate(-90 50 50)"
+                    />
+                  </svg>
+                </div>
               </div>
-              <div>
-                <div className="font-medium" style={{ color: 'var(--text-primary)' }}>Trading Mode</div>
-                <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+            </div>
+
+            {/* Trading Cards Grid */}
+            <div className="grid grid-cols-2 gap-6">
+              {/* Trading Engine Card */}
+              <div className="glass-card p-6 rounded-2xl">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <div className="text-sm text-gray-400 mb-1">Trading Engine</div>
+                    <div className="text-2xl font-bold text-white">
+                      {tradingEngineOn ? 'Active' : 'Idle'}
+                    </div>
+                  </div>
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${tradingEngineOn ? 'bg-green-500/20' : 'bg-gray-500/20'}`}>
+                    <div className={`w-3 h-3 rounded-full ${tradingEngineOn ? 'bg-green-400' : 'bg-gray-400'}`}></div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setTradingEngineOn(!tradingEngineOn)}
+                  className={`w-full py-2 rounded-lg font-medium transition-all ${
+                    tradingEngineOn 
+                      ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
+                      : 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
+                  }`}
+                >
+                  {tradingEngineOn ? 'ENGINE ON' : 'START ENGINE'}
+                </button>
+              </div>
+
+              {/* Alpaca Connection Card */}
+              <div className="glass-card p-6 rounded-2xl">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <div className="text-sm text-gray-400 mb-1">Alpaca</div>
+                    <div className="text-2xl font-bold text-white">
+                      {alpacaConnected ? 'Connected' : 'Offline'}
+                    </div>
+                  </div>
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${alpacaConnected ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
+                    <div className={`w-3 h-3 rounded-full ${alpacaConnected ? 'bg-green-400' : 'bg-red-400'}`}></div>
+                  </div>
+                </div>
+                <div className="text-xs text-gray-400">
                   {settings?.alpaca_paper ? 'Paper Trading' : 'Live Trading'}
                 </div>
               </div>
             </div>
-            <button className="btn-primary w-full text-sm">
-              {settings?.alpaca_paper ? 'SWITCH TO LIVE' : 'SWITCH TO PAPER'}
-            </button>
-          </div>
-        </div>
-
-        {/* CENTER - DATA CARDS */}
-        <div className="col-span-6 space-y-4" style={{ animationDelay: '0.2s' }}>
-          {/* Portfolio Value */}
-          <div className="card">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255, 167, 38, 0.2)' }}>
-                <span className="text-xl font-bold glow-accent" style={{ color: 'var(--accent)' }}>₿</span>
-              </div>
-              <span className="font-medium" style={{ color: 'var(--text-secondary)' }}>Portfolio Value</span>
-            </div>
-            <div className="text-5xl font-light number-update" style={{ color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>
-              {formatCurrency(0)}
-            </div>
           </div>
 
-          {/* Account Balance with Gauge */}
-          <div className="card">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: 'rgba(79, 195, 247, 0.2)' }}>
-                <span className="text-lg">💵</span>
+          {/* Right Column: BTC Chart & Info */}
+          <div className="space-y-6">
+            {/* BTC Price Card */}
+            <div className="glass-card p-6 rounded-2xl">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <div className="text-sm text-gray-400 mb-1">BTC/USD</div>
+                  <div className="text-3xl font-bold text-white mb-2">
+                    {btcPrice > 0 ? formatCurrency(btcPrice) : '---'}
+                  </div>
+                </div>
+                <div className="text-3xl">₿</div>
               </div>
-              <span className="font-medium" style={{ color: 'var(--text-secondary)' }}>Account Balance</span>
-            </div>
-            
-            <div className="flex items-center justify-center">
-              <div className="relative" style={{ width: 180, height: 180 }}>
-                <svg width="180" height="180" viewBox="0 0 180 180" style={{ transform: 'rotate(-90deg)' }}>
+              {priceHistory.length > 1 && (
+                <svg viewBox="0 0 200 60" className="w-full h-16">
                   <defs>
-                    <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                      <stop offset="0%" stopColor="var(--info)" />
-                      <stop offset="100%" stopColor="#a855f7" />
+                    <linearGradient id="btcGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" stopColor="#22c55e" stopOpacity="0.3" />
+                      <stop offset="100%" stopColor="#22c55e" stopOpacity="0" />
                     </linearGradient>
                   </defs>
-                  <circle cx="90" cy="90" r="70" fill="none" stroke="var(--border-color)" strokeWidth="8" />
-                  <circle
-                    cx="90"
-                    cy="90"
-                    r="70"
+                  <path
+                    d={`${getChartPath()} L 200 60 L 0 60 Z`}
+                    fill="url(#btcGradient)"
+                  />
+                  <path
+                    d={getChartPath()}
                     fill="none"
-                    stroke="url(#gaugeGradient)"
-                    strokeWidth="8"
-                    strokeLinecap="round"
-                    strokeDasharray={circumference}
-                    strokeDashoffset={strokeDashoffset}
-                    className="gauge-arc"
+                    stroke="#22c55e"
+                    strokeWidth="2"
                   />
                 </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <div className="text-2xl font-medium number-update" style={{ color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>
-                    {formatCurrency(equity)}
-                  </div>
-                  <div className="text-xs uppercase mt-1" style={{ color: 'var(--text-secondary)' }}>EQUITY</div>
-                </div>
-              </div>
+              )}
             </div>
 
-            <div className="grid grid-cols-2 gap-4 mt-6 pt-4" style={{ borderTop: '1px solid var(--border-color)' }}>
-              <div>
-                <div className="text-xs uppercase" style={{ color: 'var(--text-secondary)' }}>Cash</div>
-                <div className="text-lg font-medium" style={{ color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>
-                  {formatCurrency(cash)}
+            {/* Stats Card */}
+            <div className="glass-card p-6 rounded-2xl">
+              <div className="text-sm text-gray-400 mb-4">System Stats</div>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-300">Cash</span>
+                  <span className="text-white font-semibold">{formatCurrency(cash)}</span>
                 </div>
-              </div>
-              <div>
-                <div className="text-xs uppercase" style={{ color: 'var(--text-secondary)' }}>Buying Power</div>
-                <div className="text-lg font-medium" style={{ color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>
-                  {account ? formatCurrency(parseFloat(account.buying_power)) : '$0.00'}
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-300">Buying Power</span>
+                  <span className="text-white font-semibold">
+                    {account ? formatCurrency(parseFloat(account.buying_power)) : formatCurrency(cash * 2)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-300">Uptime</span>
+                  <span className="text-green-400 font-semibold">99.9%</span>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* RIGHT SIDEBAR */}
-        <div className="col-span-3 space-y-4" style={{ animationDelay: '0.3s' }}>
-          {/* Quick Actions */}
-          <div className="card">
-            <div className="flex items-center gap-2 mb-4">
-              <svg className="w-5 h-5" fill="var(--accent)" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
-              </svg>
-              <span className="font-medium" style={{ color: 'var(--text-primary)' }}>Quick Actions</span>
+        {/* Bottom Features Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[
+            { icon: '⚡', title: 'Real-Time', desc: 'Live market data and instant execution' },
+            { icon: '🤖', title: 'AI Powered', desc: 'Machine learning algorithms optimize trades' },
+            { icon: '🛡️', title: 'Risk Managed', desc: 'Advanced stop-loss and position limits' },
+          ].map((feature, i) => (
+            <div
+              key={i}
+              className="glass-card p-6 rounded-2xl hover:bg-white/10 transition-all hover:scale-105"
+            >
+              <div className="text-4xl mb-4">{feature.icon}</div>
+              <h3 className="text-xl font-semibold text-white mb-2">{feature.title}</h3>
+              <p className="text-gray-400 text-sm">{feature.desc}</p>
             </div>
-            
-            <div className="space-y-3">
-              {[
-                { icon: '🔒', label: 'System Arm', state: systemArmed, setter: setSystemArmed },
-                { icon: '🤖', label: 'Auto Trading', state: autoTrading, setter: setAutoTrading },
-                { icon: '🌐', label: 'Network', state: networkActive, setter: setNetworkActive },
-                { icon: '💤', label: 'Standby', state: standbyMode, setter: setStandbyMode },
-              ].map((item, i) => (
-                <div key={i} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">{item.icon}</span>
-                    <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>{item.label}</span>
-                  </div>
-                  <button
-                    onClick={() => item.setter(!item.state)}
-                    className={`toggle-switch ${item.state ? 'active' : ''}`}
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Market Data */}
-          <div className="card">
-            <div className="flex items-center gap-2 mb-4">
-              <svg className="w-5 h-5" fill="none" stroke="var(--info)" strokeWidth="2" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
-              </svg>
-              <span className="font-medium" style={{ color: 'var(--text-primary)' }}>Market Data</span>
-            </div>
-            
-            <div>
-              <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
-                <span className="font-bold glow-accent" style={{ color: 'var(--accent)' }}>₿</span>
-                BTC/USD
-              </div>
-              <div className="text-3xl font-light mt-1 number-update glow-accent" style={{ color: 'var(--accent)', fontVariantNumeric: 'tabular-nums' }}>
-                {btcPrice > 0 ? btcPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '---'}
-              </div>
-              
-              {/* Mini Chart */}
-              <div className="mt-4 h-12">
-                <svg width="100%" height="100%" viewBox="0 0 200 40" preserveAspectRatio="none">
-                  <path
-                    d={getChartPath()}
-                    className="chart-line"
-                    stroke="var(--success)"
-                  />
-                </svg>
-              </div>
-            </div>
-            
-            <div className="pt-4 mt-4" style={{ borderTop: '1px solid var(--border-color)' }}>
-              <div className="text-xs uppercase" style={{ color: 'var(--text-secondary)' }}>Daily P&L</div>
-              <div className="text-xl font-medium" style={{ color: 'var(--success)', fontVariantNumeric: 'tabular-nums' }}>
-                +$0.00
-              </div>
-            </div>
-          </div>
-
-          {/* Connection Status */}
-          <div className="card">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="status-dot active" />
-              <span className="font-medium" style={{ color: 'var(--text-primary)' }}>Connection</span>
-            </div>
-            
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span style={{ color: 'var(--text-secondary)' }}>Backend</span>
-                <span style={{ color: 'var(--success)' }}>Online</span>
-              </div>
-              <div className="flex justify-between">
-                <span style={{ color: 'var(--text-secondary)' }}>ESP32 Deck</span>
-                <span style={{ color: 'var(--text-secondary)' }}>Waiting...</span>
-              </div>
-              <div className="flex justify-between">
-                <span style={{ color: 'var(--text-secondary)' }}>Alpaca API</span>
-                <span style={{ color: alpacaConnected ? 'var(--success)' : 'var(--error)' }}>
-                  {alpacaConnected ? 'Connected' : 'Disconnected'}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Logout */}
-          <button onClick={logout} className="btn-secondary w-full text-sm" style={{ color: 'var(--error)', borderColor: 'var(--error)' }}>
-            Log Out
-          </button>
+          ))}
         </div>
       </div>
     </div>

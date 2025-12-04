@@ -164,10 +164,11 @@ export const App: React.FC = () => {
     )
   }
 
+  // Show login state
+  const [showLogin, setShowLogin] = useState(false)
+
   // Normal mode - show landing page or login
   if (!token) {
-    const [showLogin, setShowLogin] = useState(false)
-    
     if (showLogin) {
       return <LoginPage onLoggedIn={setToken} baseURL={baseURL} />
     }
@@ -177,7 +178,7 @@ export const App: React.FC = () => {
         onLaunchDashboard={() => setShowLogin(true)}
         onConfigureBot={() => setShowLogin(true)}
         btcPrice={btcPrice}
-        btcChange={((btcPrice - prevBtcPrice) / prevBtcPrice) * 100}
+        btcChange={prevBtcPrice > 0 ? ((btcPrice - prevBtcPrice) / prevBtcPrice) * 100 : 0}
       />
     )
   }
